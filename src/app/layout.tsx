@@ -24,6 +24,7 @@ const delaGothic = Dela_Gothic_One({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://sumisumi-anniversary.lolipop-now.app"),
   title: {
     default: "墨澄2周年記念ジェネレーター",
     template: "%s | 墨澄2周年記念ジェネレーター",
