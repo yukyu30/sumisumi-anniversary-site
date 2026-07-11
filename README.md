@@ -1,35 +1,41 @@
-# 墨澄 -SumiSumi- 周年記念ジェネレーター
+# 墨澄 -SumiSumi- 2周年記念ジェネレーター
 
-アバター「[墨澄](https://lp.suzuri.jp/3d-t-shirt)」との周年記念を、**検証できる記念画像**にして残すサイト。
+アバター「[墨澄](https://lp.suzuri.jp/3d-t-shirt)」の2周年を、写真にフレームを重ねた**チェキ風の記念画像**にして残すサイト（ファンによる非公式）。
 
-- **発行**: ID（VRChat / X など）と周年数を入力して写真を選ぶと、墨テーマの記念画像が生成される。画像上部にはバーコード風の白黒もようが焼き込まれる
-- **証明**: もようの中身は `{周年数, ID, 発行時刻}` を **AES-256-GCM**（鍵はサーバーのみ保管）で暗号化したもの。検証ページで画像を読み込むと復号・認証検証され、成功すれば「このシステムが発行した本物」と証明される（JWT 的な真正性保証）
-- **頑健性**: SNS の JPEG 再圧縮・50% 縮小・明るさ変化・180° 回転を経ても読み取れる（テストで担保）
+[**Deploy with ロリポップ！デプロイナウ**](https://lolipop.jp/deploy-now)
 
-## アーキテクチャ
+- **つくる**: ID を入れてフレーム色と写真を選ぶと、チェキ風カードに合成。フレーム（リボン）はドラッグで移動・リサイズできる。下部に QR コードと `#Sumi3D`、ID を焼き込む
+- **認証**: 画像の QR を読み込むと、**Ed25519 署名**を検証。正当な画像だけが立体的なチェキとして表示され、ID・周年・発行時刻が復元される
 
-「暗号はサーバー、ピクセルはブラウザ」:
+## 署名の仕組み（発行＝秘密鍵 / 検証＝公開鍵）
+
+共通鍵ではなく **Ed25519 の公開鍵署名**を使う。
 
 | 層 | 役割 |
 | --- | --- |
-| `/api/issue` | ID+周年を検証し、サーバー時刻を添えて暗号化ブロブを発行 |
-| `/api/verify` | ブロブを復号、GCM タグ検証成功で ID/周年/発行時刻を返す |
-| ブラウザ Canvas | バーコード描画・写真合成・読み取り（`src/lib` の純粋関数に委譲） |
+| `/api/issue` | `{id}` を受け取り、サーバー時刻＋固定の周年数(2)を **秘密鍵で署名** → `token = payload + 署名(64B)` を base64 で返す |
+| `/api/verify` | QR の token を **公開鍵で検証** → 成功で `{id, years, issuedAt}` を返す |
+| ブラウザ | QR 生成（`qrcode`）・チェキ合成・QR 読取（`jsqr`）。実サイズ出力 |
 
-ネイティブ依存（sharp 等）ゼロ。コアロジックは `src/lib` の純粋関数群で、Vitest でテストされている（`docs/test-list.md` 参照）。
+秘密鍵はサーバーだけが持つため、**このサイト（の秘密鍵）でしか正しい署名を作れない**。検証は公開鍵だけででき、後述のとおりサイトが無くても第三者が独立に検証できる。
 
 ## 開発
 
 ```bash
 pnpm install
-cp .env.example .env.local
-# ANNIV_SECRET_KEY を設定（openssl rand -hex 32）
+cp .env.example .env.local   # 鍵ペアを生成して両方セット（.env.example のコマンド参照）
 pnpm dev
 ```
 
 ```bash
-pnpm test        # 全テスト（unit: node / ui: jsdom）
-pnpm build       # 本番ビルド（standalone）
+pnpm test    # 全テスト
+pnpm build   # 本番ビルド（standalone）
+```
+
+鍵ペアの生成:
+
+```bash
+node -e 'const c=require("crypto").webcrypto;(async()=>{const k=await c.subtle.generateKey({name:"Ed25519"},true,["sign","verify"]);console.log("ANNIV_PRIVATE_KEY="+Buffer.from(await c.subtle.exportKey("pkcs8",k.privateKey)).toString("base64"));console.log("ANNIV_PUBLIC_KEY="+Buffer.from(await c.subtle.exportKey("raw",k.publicKey)).toString("base64"))})()'
 ```
 
 ## デプロイ（ロリポップ デプロイナウ）
@@ -38,6 +44,69 @@ pnpm build       # 本番ビルド（standalone）
 lolipop deploy --name sumisumi-anniversary --framework next
 ```
 
-- リモートビルドは **npm** で行われるため `package-lock.json` をコミットしている（更新: 依存変更時に `npm install --package-lock-only`）
-- **`.env` はデプロイ先で参照されない**。`ANNIV_SECRET_KEY` は必ずダッシュボードの「環境変数」タブに設定すること（未設定だと発行 API が 500 を返す）
-- `next.config.ts` の `output: "standalone"` と `images.unoptimized: true` はデプロイナウの動作要件
+- リモートビルドは **npm**（`package-lock.json` をコミット）。`output: "standalone"` / `images.unoptimized` はデプロイナウの要件
+- **`.env` は参照されない** → ダッシュボードの「環境変数」に `ANNIV_PRIVATE_KEY`（秘密鍵）と `ANNIV_PUBLIC_KEY`（公開鍵）を設定。生成受付は `src/app/api/issue/route.ts` の `GENERATION_DEADLINE` まで
+
+---
+
+## 署名を自分で検証する（サイトが無くても確認できる）
+
+記念画像の QR には検証 URL `…/verify?t=<TOKEN>` が入っている（`TOKEN` は base64）。
+このサイトが閉じても、**公開鍵さえあれば誰でも独立に署名を検証**できる。
+
+### 公開鍵（Ed25519, raw 32バイトを base64）
+
+```
+3CzZqgYAoRhXwtfosec4UKmAe9LAcxU0By7dlGg1CWI=
+```
+
+### トークン / ペイロードの形式
+
+```
+token   = payload || signature(64B)          … すべて連結し base64 化
+signature = Ed25519( payload )               … payload 全体への署名
+
+payload（署名対象、ビッグエンディアン）:
+  offset size  内容
+  0      1     version (0x01)
+  1      1     years (=2)
+  2      8     timestamp : 発行時刻 unix秒 (uint64 BE)
+  10     1     idLength = N
+  11     N     id : UTF-8
+```
+
+### 検証スクリプト（Node.js 単体・依存なし）
+
+```js
+// verify-token.mjs — 使い方: node verify-token.mjs "<QRのt=に入っている文字列>"
+const PUBLIC_KEY_B64 = "3CzZqgYAoRhXwtfosec4UKmAe9LAcxU0By7dlGg1CWI=";
+
+const tokenB64 = decodeURIComponent(process.argv[2] ?? "");
+const token = Buffer.from(tokenB64, "base64");
+const payload = token.subarray(0, token.length - 64);
+const signature = token.subarray(token.length - 64);
+
+const key = await crypto.subtle.importKey(
+  "raw",
+  Buffer.from(PUBLIC_KEY_B64, "base64"),
+  { name: "Ed25519" },
+  false,
+  ["verify"],
+);
+const ok = await crypto.subtle.verify("Ed25519", key, signature, payload);
+if (!ok) {
+  console.error("❌ 署名が不正です（このサイトが発行した画像ではありません）");
+  process.exit(1);
+}
+
+const view = new DataView(payload.buffer, payload.byteOffset, payload.byteLength);
+const years = payload[1];
+const timestamp = Number(view.getBigUint64(2));
+const idLen = payload[10];
+const id = Buffer.from(payload.subarray(11, 11 + idLen)).toString("utf8");
+console.log("✅ 本物です");
+console.log({ id, years, issuedAt: new Date(timestamp * 1000).toISOString() });
+```
+
+QR の中身が URL（`…/verify?t=XXXX`）の場合は、`t` の値（`XXXX`）を渡す。
+検証に成功すれば、その画像は確かにこのサイトの秘密鍵で発行されたもの。
