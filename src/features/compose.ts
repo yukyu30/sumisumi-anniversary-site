@@ -1,67 +1,49 @@
 /**
  * 記念画像の Canvas 合成（ブラウザ専用の薄い接着層）。
- * ロジック（暗号・バーコード）は src/lib の純粋関数に委譲し、
- * ここでは描画だけを行う。
+ * 写真を白フチのチェキ風カードに収め、写真の上にフレーム（リボン）を重ね、
+ * 写真の外・下の余白に QR コードとハッシュタグ #Sumi3D を焼き込む。
  */
-import { encodeBarcode } from "@/lib/barcode/encode";
-import { rasterize } from "@/lib/barcode/rasterize";
-import { frameContainer } from "@/lib/container";
+import QRCode from "qrcode";
 
 export type FrameColor = "blue" | "orange";
 
-export const CANVAS_WIDTH = 1280;
-/** 1280 / 64 モジュール = 20px/モジュール → ストリップは 1280×360 */
-const MODULE_SCALE = 20;
-const STRIP_HEIGHT = 18 * MODULE_SCALE; // 360
-/** 写真 + フレームの正方形領域 */
-const SQUARE = CANVAS_WIDTH; // 1280
-export const CANVAS_HEIGHT = STRIP_HEIGHT + SQUARE; // 1640
+export const HASHTAG = "#Sumi3D";
 
-/** フレーム色ごとのテーマ（フレーム PNG のリボン色に合わせる） */
-const THEMES: Record<FrameColor, { ink: string; frameSrc: string }> = {
-  blue: { ink: "#2f63e8", frameSrc: "/frames/blue.png" },
-  orange: { ink: "#f0971b", frameSrc: "/frames/orange.png" },
+/** チェキ余白（写真幅に対する割合）: 上・左右 / 下 */
+export const CHEKI = { border: 0.04, bottom: 0.2 };
+
+const FRAME_SRC: Record<FrameColor, string> = {
+  blue: "/frames/blue.png",
+  orange: "/frames/orange.png",
 };
 
+/** リボンの配置（写真基準の正規化）: 中心 (cx, cy) と幅（写真幅に対する割合） */
+export interface FramePlacement {
+  cx: number;
+  cy: number;
+  size: number;
+}
+
 export interface ComposeInput {
-  /** /api/issue が返した base64 暗号ブロブ */
+  /** /api/issue が返した base64 暗号ブロブ（QR に埋め込む） */
   payload: string;
-  /** サーバー発行時刻（unix 秒） */
-  issuedAt: number;
+  /** チェキ下部に表示する ID */
   id: string;
-  years: number;
   frameColor: FrameColor;
+  frame: FramePlacement;
   file: File;
 }
 
-function base64ToBytes(base64: string): Uint8Array {
-  const binary = atob(base64);
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-  return bytes;
+/** QR に埋め込む検証 URL */
+export function verifyUrl(payload: string): string {
+  const origin =
+    typeof location !== "undefined" ? location.origin : "https://example.com";
+  return `${origin}/verify?t=${encodeURIComponent(payload)}`;
 }
 
-/** 写真を cover-fit で描く */
-function drawCover(
-  ctx: CanvasRenderingContext2D,
-  image: ImageBitmap,
-  dx: number,
-  dy: number,
-  dw: number,
-  dh: number,
-): void {
-  const scale = Math.max(dw / image.width, dh / image.height);
-  const sw = dw / scale;
-  const sh = dh / scale;
-  const sx = (image.width - sw) / 2;
-  const sy = (image.height - sh) / 2;
-  ctx.drawImage(image, sx, sy, sw, sh, dx, dy, dw, dh);
-}
-
-/** フレーム PNG を読み込む。未配置（404）なら null を返してフォールバックする */
-async function loadFrame(src: string): Promise<ImageBitmap | null> {
+async function loadFrame(color: FrameColor): Promise<ImageBitmap | null> {
   try {
-    const res = await fetch(src);
+    const res = await fetch(FRAME_SRC[color]);
     if (!res.ok) return null;
     return await createImageBitmap(await res.blob());
   } catch {
@@ -69,55 +51,113 @@ async function loadFrame(src: string): Promise<ImageBitmap | null> {
   }
 }
 
+async function makeQrCanvas(text: string, size: number): Promise<HTMLCanvasElement> {
+  const canvas = document.createElement("canvas");
+  await QRCode.toCanvas(canvas, text, {
+    width: size,
+    margin: 2,
+    errorCorrectionLevel: "M",
+    color: { dark: "#000000", light: "#ffffff" },
+  });
+  return canvas;
+}
+
+function fontFamily(varName: string, fallback: string): string {
+  const v = getComputedStyle(document.documentElement)
+    .getPropertyValue(varName)
+    .trim();
+  return v || fallback;
+}
+
 /**
- * 発行データと写真から記念画像 (PNG) を合成する。
- * 上部 360px はバーコードストリップ（検証に使う）なので触らないこと。
+ * 記念画像 (PNG) を合成する。出力はチェキ風カード（写真＋白フチ＋下部キャプション）。
  */
 export async function composeAnniversaryImage(
   input: ComposeInput,
 ): Promise<Blob> {
-  const theme = THEMES[input.frameColor];
-  const blob = base64ToBytes(input.payload);
-  const strip = rasterize(encodeBarcode(frameContainer(blob)), MODULE_SCALE);
   const [photo, frame] = await Promise.all([
     createImageBitmap(input.file),
-    loadFrame(theme.frameSrc),
+    loadFrame(input.frameColor),
   ]);
 
+  const W = photo.width;
+  const H = photo.height;
+  const b = Math.round(W * CHEKI.border);
+  const bottomH = Math.round(W * CHEKI.bottom);
+  const cardW = W + b * 2;
+  const cardH = b + H + bottomH;
+
   const canvas = document.createElement("canvas");
-  canvas.width = CANVAS_WIDTH;
-  canvas.height = CANVAS_HEIGHT;
+  canvas.width = cardW;
+  canvas.height = cardH;
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("Canvas 2D コンテキストを取得できません");
 
-  // 背景（白）
+  // 白いカード
   ctx.fillStyle = "#ffffff";
-  ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+  ctx.fillRect(0, 0, cardW, cardH);
 
-  // バーコードストリップ（画像上部の白黒もよう＝検証用）
-  ctx.putImageData(
-    new ImageData(
-      strip.pixels as Uint8ClampedArray<ArrayBuffer>,
-      strip.width,
-      strip.height,
-    ),
-    0,
-    0,
-  );
-
-  // ストリップ下のテーマ色の区切り線
-  ctx.fillStyle = theme.ink;
-  ctx.fillRect(0, STRIP_HEIGHT, CANVAS_WIDTH, 6);
-
-  // 写真（正方形に cover-fit）
-  const squareTop = STRIP_HEIGHT + 6;
-  drawCover(ctx, photo, 0, squareTop, SQUARE, SQUARE - 6);
+  // 写真
+  ctx.drawImage(photo, b, b, W, H);
   photo.close();
 
-  // フレーム PNG を写真の上に重ねる（透過部分から写真が見える）
+  // フレーム（リボン）は写真の上だけ（はみ出しはクリップ）
   if (frame) {
-    ctx.drawImage(frame, 0, squareTop, SQUARE, SQUARE);
+    const fw = input.frame.size * W;
+    const fh = fw * (frame.height / frame.width);
+    const fx = b + input.frame.cx * W - fw / 2;
+    const fy = b + input.frame.cy * H - fh / 2;
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(b, b, W, H);
+    ctx.clip();
+    ctx.drawImage(frame, fx, fy, fw, fh);
+    ctx.restore();
     frame.close();
+  }
+
+  // 写真のふち（うっすら）
+  ctx.strokeStyle = "rgba(0,0,0,0.08)";
+  ctx.lineWidth = Math.max(1, Math.round(W * 0.002));
+  ctx.strokeRect(b, b, W, H);
+
+  // 下の余白: QR（右）と ハッシュタグ + ID（左）
+  const bottomY = b + H;
+  const wordmark = fontFamily("--font-wordmark", "sans-serif");
+  const sans = fontFamily("--font-sans", "sans-serif");
+  await Promise.all([
+    document.fonts
+      .load(`700 ${Math.round(bottomH * 0.3)}px ${wordmark}`, HASHTAG)
+      .catch(() => {}),
+    document.fonts
+      .load(`500 ${Math.round(bottomH * 0.22)}px ${sans}`, input.id)
+      .catch(() => {}),
+  ]);
+
+  const qrSize = Math.round(bottomH * 0.82);
+  const qrX = cardW - b - qrSize;
+  const qrY = bottomY + (bottomH - qrSize) / 2;
+  const qr = await makeQrCanvas(verifyUrl(input.payload), qrSize);
+  ctx.drawImage(qr, qrX, qrY);
+
+  const leftX = b * 1.6;
+  const maxTextW = qrX - leftX - b;
+  const fit = (text: string, target: number, weight: number, family: string) => {
+    ctx.font = `${weight} ${target}px ${family}`;
+    const w = ctx.measureText(text).width;
+    return w > maxTextW ? Math.floor((target * maxTextW) / w) : target;
+  };
+  ctx.textAlign = "left";
+  ctx.textBaseline = "middle";
+  // ハッシュタグ
+  ctx.fillStyle = "#1c1917";
+  ctx.font = `700 ${fit(HASHTAG, Math.round(bottomH * 0.3), 700, wordmark)}px ${wordmark}`;
+  ctx.fillText(HASHTAG, leftX, bottomY + bottomH * 0.38);
+  // ID
+  if (input.id) {
+    ctx.fillStyle = "#6b7280";
+    ctx.font = `500 ${fit(input.id, Math.round(bottomH * 0.22), 500, sans)}px ${sans}`;
+    ctx.fillText(input.id, leftX, bottomY + bottomH * 0.72);
   }
 
   return await new Promise<Blob>((resolve, reject) => {
