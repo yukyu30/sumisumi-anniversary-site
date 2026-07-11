@@ -5,7 +5,7 @@ import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { VRMLoaderPlugin, VRMUtils, type VRM } from "@pixiv/three-vrm";
 
-const MODEL_URL = "/models/Sumisumi_VRM.vrm";
+const MODEL_URL = "/models/Sumisumi%20VRM.vrm";
 
 /** 墨澄 VRM をゆっくり回転させて表示するビューア */
 export default function VrmViewer() {
