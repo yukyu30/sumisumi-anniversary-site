@@ -46,19 +46,19 @@ function base64ToBytes(base64: string): Uint8Array {
   return bytes;
 }
 
-/** next/font が CSS 変数に入れたフォントファミリーを取り出す */
-function serifFamily(): string {
+/** next/font が CSS 変数に入れたゴシックのフォントファミリーを取り出す */
+function sansFamily(): string {
   const family = getComputedStyle(document.documentElement)
-    .getPropertyValue("--font-shippori-mincho")
+    .getPropertyValue("--font-sans")
     .trim();
-  return family || '"Hiragino Mincho ProN", "Yu Mincho", serif';
+  return family || '"Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif';
 }
 
 async function ensureFonts(family: string): Promise<void> {
   try {
     await Promise.all([
-      document.fonts.load(`700 44px ${family}`, "墨澄記念証周年"),
-      document.fonts.load(`500 30px ${family}`, "0123456789年月日発行"),
+      document.fonts.load(`700 46px ${family}`, "墨澄記念証周年"),
+      document.fonts.load(`500 28px ${family}`, "0123456789年月日発行"),
     ]);
   } catch {
     // フォントが読めなくてもフォールバックで描画は続行できる
@@ -107,7 +107,7 @@ export async function composeAnniversaryImage(
     createImageBitmap(input.file),
     loadFrame(theme.frameSrc),
   ]);
-  const family = serifFamily();
+  const family = sansFamily();
   await ensureFonts(family);
 
   const canvas = document.createElement("canvas");

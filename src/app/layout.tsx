@@ -1,10 +1,18 @@
 import type { Metadata } from "next";
-import { Shippori_Mincho } from "next/font/google";
+import { Montserrat, Zen_Kaku_Gothic_New } from "next/font/google";
 import "./globals.css";
 
-const shipporiMincho = Shippori_Mincho({
-  variable: "--font-shippori-mincho",
-  weight: ["500", "700"],
+// 極太ラテン（"sumisumi" ワードマーク・英字見出し用）
+const montserrat = Montserrat({
+  variable: "--font-wordmark",
+  weight: ["700", "800", "900"],
+  subsets: ["latin"],
+});
+
+// 日本語ゴシック（本文・見出し）
+const zenKaku = Zen_Kaku_Gothic_New({
+  variable: "--font-sans",
+  weight: ["400", "500", "700", "900"],
   preload: false,
 });
 
@@ -33,8 +41,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ja" className={`${shipporiMincho.variable} h-full antialiased`}>
-      <body className="flex min-h-full flex-col bg-[#f7f4ec] text-stone-900">
+    <html
+      lang="ja"
+      className={`${montserrat.variable} ${zenKaku.variable} h-full antialiased`}
+    >
+      <body className="flex min-h-full flex-col bg-white text-zinc-900">
         {children}
       </body>
     </html>

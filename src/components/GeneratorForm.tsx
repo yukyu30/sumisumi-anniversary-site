@@ -86,7 +86,7 @@ export function GeneratorForm({ onIssued }: Props) {
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-5" noValidate>
       <div className="flex flex-col gap-1.5">
-        <label htmlFor="generator-id" className="text-sm font-medium">
+        <label htmlFor="generator-id" className="text-sm font-bold">
           ID（VRChat ID・X の ID など）
         </label>
         <input
@@ -95,20 +95,20 @@ export function GeneratorForm({ onIssued }: Props) {
           value={id}
           onChange={(e) => setId(e.target.value)}
           placeholder="例: sumisumi_fan"
-          className="rounded-lg border border-stone-300 bg-white px-3 py-2 text-stone-900 focus:border-stone-800 focus:outline-none"
+          className="rounded-xl border-2 border-zinc-200 bg-white px-4 py-2.5 font-medium text-zinc-900 focus:border-brand-blue focus:outline-none"
         />
       </div>
 
       <fieldset className="flex flex-col gap-1.5">
-        <legend className="text-sm font-medium">フレームの色</legend>
+        <legend className="text-sm font-bold">フレームの色</legend>
         <div className="mt-1 flex gap-3">
           {FRAME_OPTIONS.map((opt) => (
             <label
               key={opt.value}
-              className={`flex cursor-pointer items-center gap-2 rounded-lg border px-4 py-2 transition ${
+              className={`flex cursor-pointer items-center gap-2 rounded-full border-2 px-5 py-2 font-bold transition ${
                 frameColor === opt.value
-                  ? "border-stone-800 bg-stone-100"
-                  : "border-stone-300"
+                  ? "border-zinc-900 bg-zinc-900 text-white"
+                  : "border-zinc-200 text-zinc-700"
               }`}
             >
               <input
@@ -121,7 +121,7 @@ export function GeneratorForm({ onIssued }: Props) {
               />
               <span
                 aria-hidden
-                className="h-4 w-4 rounded-full"
+                className="h-4 w-4 rounded-full ring-2 ring-white"
                 style={{ backgroundColor: opt.swatch }}
               />
               <span className="text-sm">{opt.label}</span>
@@ -131,7 +131,7 @@ export function GeneratorForm({ onIssued }: Props) {
       </fieldset>
 
       <div className="flex flex-col gap-1.5">
-        <label htmlFor="generator-image" className="text-sm font-medium">
+        <label htmlFor="generator-image" className="text-sm font-bold">
           画像（記念に使う写真・スクリーンショット）
         </label>
         <input
@@ -139,12 +139,12 @@ export function GeneratorForm({ onIssued }: Props) {
           type="file"
           accept="image/*"
           onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-          className="text-sm file:mr-3 file:rounded-lg file:border-0 file:bg-stone-800 file:px-4 file:py-2 file:text-white"
+          className="text-sm font-medium file:mr-3 file:rounded-full file:border-0 file:bg-brand-blue file:px-4 file:py-2 file:font-bold file:text-white"
         />
       </div>
 
       {error && (
-        <p role="alert" className="text-sm text-red-600">
+        <p role="alert" className="text-sm font-bold text-red-600">
           {error}
         </p>
       )}
@@ -152,7 +152,7 @@ export function GeneratorForm({ onIssued }: Props) {
       <button
         type="submit"
         disabled={submitting}
-        className="rounded-lg bg-stone-900 px-6 py-3 font-bold text-white transition hover:bg-stone-700 disabled:opacity-50"
+        className="rounded-full bg-zinc-900 px-6 py-3.5 font-bold text-white shadow-lg transition hover:bg-zinc-700 disabled:opacity-50"
       >
         {submitting ? "生成中…" : "記念画像を生成"}
       </button>

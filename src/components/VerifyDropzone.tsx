@@ -86,12 +86,12 @@ export function VerifyDropzone() {
     <div className="flex flex-col gap-6">
       <label
         htmlFor="verify-image"
-        className="flex cursor-pointer flex-col items-center gap-2 rounded-xl border-2 border-dashed border-stone-400 bg-white/60 px-6 py-12 text-center transition hover:border-stone-800"
+        className="flex cursor-pointer flex-col items-center gap-2 rounded-3xl border-4 border-dashed border-zinc-300 bg-zinc-50 px-6 py-14 text-center transition hover:border-brand-blue hover:bg-brand-blue/5"
       >
-        <span className="text-lg font-medium">
+        <span className="text-lg font-black">
           {busy ? "解析中…" : "記念画像を選択"}
         </span>
-        <span className="text-sm text-stone-500">
+        <span className="text-sm font-medium text-zinc-500">
           このサイトで生成した画像（SNS 保存版でも OK）
         </span>
         <input

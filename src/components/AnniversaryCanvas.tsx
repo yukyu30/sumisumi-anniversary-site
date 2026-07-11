@@ -40,7 +40,7 @@ export function AnniversaryCanvas({ issued, onReset }: Props) {
         </p>
         <button
           onClick={onReset}
-          className="rounded-lg border border-stone-400 px-6 py-2"
+          className="rounded-full border-2 border-zinc-300 px-6 py-2 font-bold"
         >
           やり直す
         </button>
@@ -57,30 +57,30 @@ export function AnniversaryCanvas({ issued, onReset }: Props) {
           <img
             src={url}
             alt={`祝 ${issued.years}周年 ${issued.id} の記念画像`}
-            className="w-full max-w-md rounded-lg shadow-xl"
+            className="w-full max-w-md rounded-3xl shadow-xl"
           />
           <div className="flex flex-wrap justify-center gap-4">
             <a
               href={url}
               download={`sumisumi-${issued.years}th-${issued.id}.png`}
-              className="rounded-lg bg-stone-900 px-6 py-3 font-bold text-white transition hover:bg-stone-700"
+              className="rounded-full bg-brand-blue px-6 py-3.5 font-bold text-white shadow-lg transition hover:bg-brand-blue-dark"
             >
               画像をダウンロード
             </a>
             <button
               onClick={onReset}
-              className="rounded-lg border border-stone-400 px-6 py-3 transition hover:bg-stone-100"
+              className="rounded-full border-2 border-zinc-300 px-6 py-3.5 font-bold transition hover:bg-zinc-100"
             >
               もう一度つくる
             </button>
           </div>
-          <p className="max-w-md text-center text-sm text-stone-500">
+          <p className="max-w-md text-center text-sm font-medium text-zinc-500">
             画像上部の白黒もようは発行証明です。切り取らずに投稿すると、
             このサイトの「検証」でいつでも本物であることを確認できます。
           </p>
         </>
       ) : (
-        <p className="animate-pulse text-stone-500">記念画像を合成中…</p>
+        <p className="animate-pulse font-bold text-zinc-500">記念画像を合成中…</p>
       )}
     </div>
   );

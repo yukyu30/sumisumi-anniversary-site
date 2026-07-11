@@ -1,11 +1,24 @@
 @import "tailwindcss";
 
 @theme inline {
-  /* 墨（すみ）テーマ: 明朝を基本に、和紙色 × 墨色 */
-  --font-serif: var(--font-shippori-mincho), "Hiragino Mincho ProN",
-    "Yu Mincho", serif;
+  /* 墨澄ブランド: ビビッドな青 × オレンジ */
+  --color-brand-blue: #2456e6;
+  --color-brand-blue-dark: #1c3fb0;
+  --color-brand-orange: #f7961e;
+  --color-brand-orange-light: #ffb547;
+
+  --font-sans: var(--font-sans), "Hiragino Kaku Gothic ProN", "Yu Gothic",
+    sans-serif;
+  --font-wordmark: var(--font-wordmark), var(--font-sans), sans-serif;
 }
 
 body {
-  font-family: var(--font-serif);
+  font-family: var(--font-sans);
+}
+
+/* 極太の傾いたワードマーク */
+.wordmark {
+  font-family: var(--font-wordmark);
+  font-weight: 900;
+  letter-spacing: -0.03em;
 }
