@@ -99,6 +99,10 @@ export default function Home() {
               記念画像を認証する
             </Link>
           </div>
+          <p className="mt-5 text-xs font-medium text-zinc-700">
+            画像の生成は <span className="font-black">2026年7月29日 23:59（JST）</span>{" "}
+            まで。認証はいつでもできます。
+          </p>
         </div>
       </section>
 
