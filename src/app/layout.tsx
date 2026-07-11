@@ -29,16 +29,16 @@ export const metadata: Metadata = {
     template: "%s | 墨澄2周年記念ジェネレーター",
   },
   description:
-    "アバター「墨澄 -SumiSumi-」の2周年記念を証明付き画像にして残そう。生成した画像はこのサイトでいつでも本物か検証できます。",
+    "アバター「墨澄 -SumiSumi-」の2周年をお祝い。お気に入りの写真に記念フレームを重ねて、記念画像をつくろう。",
   openGraph: {
     title: "墨澄2周年記念ジェネレーター",
     description:
-      "墨澄 -SumiSumi- の2周年を、検証できる記念画像に。発行証明は暗号化されて画像に焼き込まれます。",
+      "墨澄 -SumiSumi- の2周年をお祝い。写真を選ぶだけで、記念画像ができあがります。",
     type: "website",
     locale: "ja_JP",
   },
   twitter: {
-    card: "summary",
+    card: "summary_large_image",
   },
 };
 
