@@ -16,7 +16,7 @@ const DRAG_SENSITIVITY = 0.9;
  * PC はホバー（カーソル位置）で左右に追従、タッチは左右ドラッグで視差が付く。
  * 上下方向の動きは付けない。
  */
-export function Hero() {
+export function Hero({ gallery = [] }: { gallery?: string[] }) {
   const drag = useRef<DragState>({ x: 0, y: 0 });
   const touch = useRef<{ id: number; x: number } | null>(null);
 
@@ -62,7 +62,7 @@ export function Hero() {
       onPointerCancel={onPointerUp}
       onPointerLeave={onPointerLeave}
     >
-      <HeroScene drag={drag} />
+      <HeroScene drag={drag} gallery={gallery} />
     </div>
   );
 }

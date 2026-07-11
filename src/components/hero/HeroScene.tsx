@@ -114,6 +114,40 @@ function Confetti() {
   );
 }
 
+/** 記念画像ウォール。2周年テキストの後ろ・中央を避けて周囲に配置し、視差を受ける */
+function GalleryPlanes({ images }: { images: string[] }) {
+  const textures = useTexture(images);
+  const list = Array.isArray(textures) ? textures : [textures];
+  const N = list.length;
+  return (
+    <>
+      {list.map((tex, i) => {
+        tex.colorSpace = THREE.SRGBColorSpace;
+        const img = tex.image as { width: number; height: number } | undefined;
+        const aspect = img?.width && img?.height ? img.width / img.height : 1.4;
+        // 楕円リング上に配置（中央は空ける）
+        const t = (i / N) * Math.PI * 2 + 0.5;
+        const x = Math.cos(t) * 7.6;
+        const y = Math.sin(t) * 4.7;
+        const z = -6 - (i % 3); // 2周年テキスト(z=-3)より奥
+        const rot = ((((i * 53) % 20) - 10) * Math.PI) / 180;
+        const h = 1.7;
+        return (
+          <mesh key={i} position={[x, y, z]} rotation={[0, 0, rot]}>
+            <planeGeometry args={[h * aspect, h]} />
+            <meshBasicMaterial
+              map={tex}
+              transparent
+              opacity={0.7}
+              toneMapped={false}
+            />
+          </mesh>
+        );
+      })}
+    </>
+  );
+}
+
 /** 紙吹雪に紛れて時々落ちてくる墨澄ピース */
 function SumiPieces() {
   const texture = useTexture("/surisurikun.svg");
@@ -287,8 +321,10 @@ function Rig() {
 
 export default function HeroScene({
   drag,
+  gallery = [],
 }: {
   drag: MutableRefObject<DragState>;
+  gallery?: string[];
 }) {
   return (
     <Canvas
@@ -298,6 +334,11 @@ export default function HeroScene({
     >
       <Rig />
       <ParallaxGroup drag={drag}>
+        {gallery.length > 0 && (
+          <Suspense fallback={null}>
+            <GalleryPlanes images={gallery} />
+          </Suspense>
+        )}
         <AnnivText />
         <Suspense fallback={null}>
           <Character />

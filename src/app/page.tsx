@@ -1,7 +1,6 @@
 import { readdirSync } from "node:fs";
 import { join } from "node:path";
 import Link from "next/link";
-import { GalleryBackground } from "@/components/GalleryBackground";
 import { Hero } from "@/components/hero/Hero";
 
 /** public/gallery のチェキ画像一覧（背景ウォール用） */
@@ -79,10 +78,7 @@ export default function Home() {
       {/* ヒーロー: 紙吹雪・立ち絵・2周年を 3D で立体配置（ドラッグで視差） */}
       <section className="relative overflow-hidden bg-brand-yellow">
         <h1 className="sr-only">墨澄 2周年記念</h1>
-        <GalleryBackground images={gallery} />
-        <div className="relative z-10">
-          <Hero />
-        </div>
+        <Hero gallery={gallery} />
 
         <div className="relative z-10 mx-auto flex w-full max-w-4xl flex-col items-center px-6 pb-14 text-center">
           <p className="text-lg font-black tracking-wide text-zinc-900 md:text-2xl">
