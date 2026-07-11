@@ -1,65 +1,97 @@
-import Image from "next/image";
+import Link from "next/link";
+import { SumisumiHero } from "@/components/SumisumiHero";
+
+const steps = [
+  {
+    title: "ID と周年数を入力",
+    body: "VRChat や X の ID と、迎えた周年数を入力します。発行時刻はサーバーが刻印します。",
+  },
+  {
+    title: "写真を選んで生成",
+    body: "思い出の写真に墨の額縁と、暗号化された発行証明のもようが合成されます。",
+  },
+  {
+    title: "いつでも検証",
+    body: "画像上部の白黒もようを読み込むと ID と発行時刻が復元され、本物と証明できます。",
+  },
+];
 
 export default function Home() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
+    <main className="flex-1">
+      {/* ヒーロー */}
+      <section className="mx-auto flex w-full max-w-5xl flex-col items-center gap-10 px-6 pb-16 pt-14 md:flex-row md:gap-6">
+        <div className="flex-1 text-center md:text-left">
+          <p className="text-sm tracking-[0.3em] text-stone-500">
+            SUMISUMI ANNIVERSARY
+          </p>
+          <h1 className="mt-4 text-4xl font-bold leading-tight md:text-5xl">
+            墨澄との日々を、
+            <br />
+            証明できる記念に。
           </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
+          <p className="mx-auto mt-6 max-w-md text-sm leading-relaxed text-stone-600 md:mx-0">
+            アバター「墨澄 -SumiSumi-」と迎えた周年を、記念画像にして残しましょう。
+            画像の上部には暗号化された発行証明が焼き込まれ、
+            SNS で圧縮されてもこのサイトでいつでも「本物」を確かめられます。
+          </p>
+          <div className="mt-8 flex flex-wrap justify-center gap-4 md:justify-start">
+            <Link
+              href="/generate"
+              className="rounded-lg bg-stone-900 px-8 py-3 font-bold text-white transition hover:bg-stone-700"
             >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
+              記念画像をつくる
+            </Link>
+            <Link
+              href="/verify"
+              className="rounded-lg border border-stone-400 px-8 py-3 font-bold transition hover:bg-stone-100"
             >
-              Learning
-            </a>{" "}
-            center.
+              画像を検証する
+            </Link>
+          </div>
+        </div>
+        <div className="w-full max-w-sm flex-1">
+          <SumisumiHero />
+        </div>
+      </section>
+
+      {/* しくみ */}
+      <section className="border-t border-stone-200 bg-white/60">
+        <div className="mx-auto w-full max-w-5xl px-6 py-14">
+          <h2 className="text-center text-2xl font-bold">しくみ</h2>
+          <div className="mt-10 grid gap-8 md:grid-cols-3">
+            {steps.map((step, i) => (
+              <div key={step.title} className="text-center md:text-left">
+                <p className="text-4xl font-bold text-stone-300">
+                  {String(i + 1).padStart(2, "0")}
+                </p>
+                <h3 className="mt-2 text-lg font-bold">{step.title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-stone-600">
+                  {step.body}
+                </p>
+              </div>
+            ))}
+          </div>
+          <p className="mx-auto mt-12 max-w-2xl text-center text-xs leading-relaxed text-stone-400">
+            発行証明は AES-256-GCM
+            で暗号化され、鍵はサーバーだけが保管します。復号と認証タグの検証に成功した画像だけが「このシステムが発行した本物」と表示されます。
           </p>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
+      </section>
+
+      <footer className="border-t border-stone-200">
+        <div className="mx-auto flex w-full max-w-5xl items-center justify-between px-6 py-6 text-xs text-stone-400">
+          <p>墨澄 -SumiSumi- 周年記念ジェネレーター</p>
           <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
+            href="https://lp.suzuri.jp/3d-t-shirt"
             target="_blank"
             rel="noopener noreferrer"
+            className="hover:text-stone-600"
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
+            墨澄について
           </a>
         </div>
-      </main>
-    </div>
+      </footer>
+    </main>
   );
 }
