@@ -33,14 +33,14 @@ export function VerifiedCheki({ imageUrl, id, years, issuedAt }: Props) {
   }
 
   return (
-    <div className="flex flex-col items-center gap-6">
-      <div style={{ perspective: 1000 }}>
+    <div className="flex w-full flex-col items-center gap-6">
+      <div className="w-full" style={{ perspective: 1400 }}>
         <div
           ref={ref}
           onPointerMove={onMove}
           onPointerLeave={onLeave}
           onPointerCancel={onLeave}
-          className="relative w-72 max-w-full touch-none overflow-hidden rounded-lg bg-white shadow-2xl transition-transform duration-150 ease-out will-change-transform sm:w-80"
+          className="relative mx-auto w-full max-w-3xl touch-none overflow-hidden rounded-lg bg-white shadow-2xl transition-transform duration-150 ease-out will-change-transform"
           style={{
             transform: `rotateX(${tilt.rx}deg) rotateY(${tilt.ry}deg)`,
             transformStyle: "preserve-3d",
@@ -53,6 +53,41 @@ export function VerifiedCheki({ imageUrl, id, years, issuedAt }: Props) {
             className="block w-full select-none"
             draggable={false}
           />
+          {/* うっすら SumiSumi ホログラム（傾きで虹色がシフト） */}
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-0 overflow-hidden transition-opacity duration-150"
+            style={{
+              opacity: glare.on ? 0.7 : 0,
+              // 光が当たっているスポットだけ文字が浮かび上がる
+              WebkitMaskImage: `radial-gradient(circle at ${glare.x}% ${glare.y}%, #000 0%, #000 10%, transparent 34%)`,
+              maskImage: `radial-gradient(circle at ${glare.x}% ${glare.y}%, #000 0%, #000 10%, transparent 34%)`,
+            }}
+          >
+            <div
+              style={{
+                position: "absolute",
+                inset: "-50%",
+                transform: "rotate(-22deg)",
+                fontFamily: "var(--font-wordmark)",
+                fontWeight: 800,
+                fontSize: 76,
+                lineHeight: "1.7em",
+                letterSpacing: "0.28em",
+                wordBreak: "break-word",
+                color: "transparent",
+                backgroundImage:
+                  "linear-gradient(115deg, #ff5ea3, #ffd23f, #4be3c7, #6aa3ff, #d07bff, #ff5ea3)",
+                backgroundSize: "220% 220%",
+                backgroundPosition: `${glare.x}% ${glare.y}%`,
+                WebkitBackgroundClip: "text",
+                backgroundClip: "text",
+                mixBlendMode: "color-dodge",
+              }}
+            >
+              {"SumiSumi ".repeat(200)}
+            </div>
+          </div>
           {/* 光沢（テカリ） */}
           <div
             aria-hidden

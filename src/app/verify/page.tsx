@@ -12,7 +12,7 @@ export default async function VerifyPage({
 }) {
   const { t } = await searchParams;
   return (
-    <main className="mx-auto w-full max-w-xl flex-1 px-6 py-12">
+    <main className="mx-auto w-full max-w-3xl flex-1 px-6 py-12">
       <Link
         href="/"
         className="text-sm font-bold text-zinc-400 hover:text-zinc-700"
