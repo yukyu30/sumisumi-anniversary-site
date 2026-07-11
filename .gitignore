@@ -43,3 +43,6 @@ next-env.d.ts
 
 # npm 経路のビルド検証用ディレクトリ
 .npmcheck/
+
+# lolipop CLI のプロジェクト link 情報
+.lolipop/
