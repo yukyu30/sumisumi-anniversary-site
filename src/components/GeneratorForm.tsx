@@ -4,6 +4,9 @@ import { useState } from "react";
 import type { FrameColor } from "@/features/compose";
 import { MAX_ID_BYTES } from "@/lib/payload";
 
+/** 墨澄2周年記念で固定（サーバーの ANNIVERSARY_YEARS と一致させる） */
+export const ANNIVERSARY_YEARS = 2;
+
 export interface IssuedData {
   /** /api/issue が返した base64 暗号ブロブ */
   payload: string;
@@ -26,7 +29,6 @@ interface Props {
 
 export function GeneratorForm({ onIssued }: Props) {
   const [id, setId] = useState("");
-  const [years, setYears] = useState("");
   const [frameColor, setFrameColor] = useState<FrameColor>("blue");
   const [file, setFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -45,11 +47,6 @@ export function GeneratorForm({ onIssued }: Props) {
       setError(`ID は UTF-8 で ${MAX_ID_BYTES} バイト以内にしてください`);
       return;
     }
-    const yearsNumber = Number(years);
-    if (!Number.isInteger(yearsNumber) || yearsNumber < 1 || yearsNumber > 255) {
-      setError("周年数は 1〜255 の整数で入力してください");
-      return;
-    }
     if (!file) {
       setError("画像を選択してください");
       return;
@@ -60,7 +57,7 @@ export function GeneratorForm({ onIssued }: Props) {
       const res = await fetch("/api/issue", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ id: normalizedId, years: yearsNumber }),
+        body: JSON.stringify({ id: normalizedId }),
       });
       const body = (await res.json()) as {
         payload?: string;
@@ -75,7 +72,7 @@ export function GeneratorForm({ onIssued }: Props) {
         payload: body.payload,
         issuedAt: body.issuedAt,
         id: normalizedId,
-        years: yearsNumber,
+        years: ANNIVERSARY_YEARS,
         frameColor,
         file,
       });
@@ -99,22 +96,6 @@ export function GeneratorForm({ onIssued }: Props) {
           onChange={(e) => setId(e.target.value)}
           placeholder="例: sumisumi_fan"
           className="rounded-lg border border-stone-300 bg-white px-3 py-2 text-stone-900 focus:border-stone-800 focus:outline-none"
-        />
-      </div>
-
-      <div className="flex flex-col gap-1.5">
-        <label htmlFor="generator-years" className="text-sm font-medium">
-          周年数
-        </label>
-        <input
-          id="generator-years"
-          type="number"
-          min={1}
-          max={255}
-          value={years}
-          onChange={(e) => setYears(e.target.value)}
-          placeholder="例: 1"
-          className="w-32 rounded-lg border border-stone-300 bg-white px-3 py-2 text-stone-900 focus:border-stone-800 focus:outline-none"
         />
       </div>
 

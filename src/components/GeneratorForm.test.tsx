@@ -26,7 +26,6 @@ describe("GeneratorForm", () => {
 
   async function fillAndSubmit(user: ReturnType<typeof userEvent.setup>, id: string) {
     if (id) await user.type(screen.getByLabelText(/ID/), id);
-    await user.type(screen.getByLabelText(/周年/), "3");
     await user.upload(screen.getByLabelText(/画像/), PNG_FILE);
     await user.click(screen.getByRole("button", { name: /生成/ }));
   }
@@ -39,13 +38,14 @@ describe("GeneratorForm", () => {
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
     const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
     expect(url).toBe("/api/issue");
-    expect(JSON.parse(init.body as string)).toEqual({ id: "yukyu30", years: 3 });
+    // 周年数は送らない（サーバーで 2 周年固定）
+    expect(JSON.parse(init.body as string)).toEqual({ id: "yukyu30" });
     await waitFor(() =>
       expect(onIssued).toHaveBeenCalledWith({
         payload: "QUJDRA==",
         issuedAt: 1_752_246_000,
         id: "yukyu30",
-        years: 3,
+        years: 2,
         frameColor: "blue",
         file: PNG_FILE,
       }),
@@ -85,8 +85,8 @@ describe("GeneratorForm", () => {
 
   it("API がエラーを返したらメッセージを表示する", async () => {
     fetchMock.mockResolvedValue(
-      new Response(JSON.stringify({ error: "周年数は 1〜255 の整数で入力してください" }), {
-        status: 400,
+      new Response(JSON.stringify({ error: "サーバーの設定エラーです" }), {
+        status: 500,
       }),
     );
     const user = userEvent.setup();
@@ -94,7 +94,7 @@ describe("GeneratorForm", () => {
     await fillAndSubmit(user, "yukyu30");
 
     expect(
-      await screen.findByText(/周年数は 1〜255 の整数で入力してください/),
+      await screen.findByText(/サーバーの設定エラーです/),
     ).toBeInTheDocument();
     expect(onIssued).not.toHaveBeenCalled();
   });

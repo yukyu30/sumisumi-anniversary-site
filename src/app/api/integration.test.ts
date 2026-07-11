@@ -31,7 +31,7 @@ describe("⑲ 全経路統合: issue → frame → encode → rasterize → JPEG
   it("SNS 劣化を挟んでも発行データが復元・検証できる", async () => {
     // 1. 発行（サーバー: 暗号化）
     const issued = await issue(
-      request("/api/issue", { id: "sumisumi_fan🖌️", years: 5 }),
+      request("/api/issue", { id: "sumisumi_fan🖌️" }),
     );
     expect(issued.status).toBe(200);
     const { payload } = (await issued.json()) as { payload: string };
@@ -59,6 +59,6 @@ describe("⑲ 全経路統合: issue → frame → encode → rasterize → JPEG
     expect(res.status).toBe(200);
     const body = (await res.json()) as { id: string; years: number };
     expect(body.id).toBe("sumisumi_fan🖌️");
-    expect(body.years).toBe(5);
+    expect(body.years).toBe(2);
   });
 });

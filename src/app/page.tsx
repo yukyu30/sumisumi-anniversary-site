@@ -3,12 +3,12 @@ import { SumisumiHero } from "@/components/SumisumiHero";
 
 const steps = [
   {
-    title: "ID と周年数を入力",
-    body: "VRChat や X の ID と、迎えた周年数を入力します。発行時刻はサーバーが刻印します。",
+    title: "ID を入力",
+    body: "VRChat や X の ID を入力します。発行時刻はサーバーが刻印します。",
   },
   {
-    title: "写真を選んで生成",
-    body: "思い出の写真に墨の額縁と、暗号化された発行証明のもようが合成されます。",
+    title: "色と写真を選んで生成",
+    body: "フレームの色（青／オレンジ）と思い出の写真を選ぶと、暗号化された発行証明つきの記念画像が合成されます。",
   },
   {
     title: "いつでも検証",
@@ -23,15 +23,15 @@ export default function Home() {
       <section className="mx-auto flex w-full max-w-5xl flex-col items-center gap-10 px-6 pb-16 pt-14 md:flex-row md:gap-6">
         <div className="flex-1 text-center md:text-left">
           <p className="text-sm tracking-[0.3em] text-stone-500">
-            SUMISUMI ANNIVERSARY
+            SUMISUMI 2ND ANNIVERSARY
           </p>
           <h1 className="mt-4 text-4xl font-bold leading-tight md:text-5xl">
-            墨澄との日々を、
+            墨澄との2年を、
             <br />
             証明できる記念に。
           </h1>
           <p className="mx-auto mt-6 max-w-md text-sm leading-relaxed text-stone-600 md:mx-0">
-            アバター「墨澄 -SumiSumi-」と迎えた周年を、記念画像にして残しましょう。
+            アバター「墨澄 -SumiSumi-」の2周年を、記念画像にして残しましょう。
             画像の上部には暗号化された発行証明が焼き込まれ、
             SNS で圧縮されてもこのサイトでいつでも「本物」を確かめられます。
           </p>
@@ -81,7 +81,7 @@ export default function Home() {
 
       <footer className="border-t border-stone-200">
         <div className="mx-auto flex w-full max-w-5xl items-center justify-between px-6 py-6 text-xs text-stone-400">
-          <p>墨澄 -SumiSumi- 周年記念ジェネレーター</p>
+          <p>墨澄 -SumiSumi- 2周年記念ジェネレーター</p>
           <a
             href="https://lp.suzuri.jp/3d-t-shirt"
             target="_blank"

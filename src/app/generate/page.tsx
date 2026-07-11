@@ -14,10 +14,10 @@ export default function GeneratePage() {
         ← トップへ
       </Link>
       <h1 className="mt-4 font-serif text-3xl font-bold">
-        周年記念画像をつくる
+        墨澄2周年記念画像をつくる
       </h1>
       <p className="mt-2 text-sm leading-relaxed text-stone-600">
-        ID と周年数を入れて写真を選ぶと、発行証明つきの記念画像ができあがります。
+        ID を入れてフレームの色と写真を選ぶと、発行証明つきの記念画像ができあがります。
         発行時刻はサーバーが刻印し、暗号化されて画像上部のもように焼き込まれます。
       </p>
       <div className="mt-8">

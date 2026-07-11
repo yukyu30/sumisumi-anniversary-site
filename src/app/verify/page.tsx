@@ -2,7 +2,7 @@ import Link from "next/link";
 import { VerifyDropzone } from "@/components/VerifyDropzone";
 
 export const metadata = {
-  title: "画像を検証する | 墨澄 周年記念ジェネレーター",
+  title: "画像を検証する",
 };
 
 export default function VerifyPage() {

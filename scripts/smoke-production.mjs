@@ -26,7 +26,7 @@ for (const path of ["/", "/generate", "/verify"]) {
 const issueRes = await fetch(`${base}/api/issue`, {
   method: "POST",
   headers: { "content-type": "application/json" },
-  body: JSON.stringify({ id: "smoke-test", years: 1 }),
+  body: JSON.stringify({ id: "smoke-test" }),
 });
 const issued = await issueRes.json().catch(() => ({}));
 check(

@@ -4,14 +4,16 @@ import { getSecretKey } from "@/lib/server/keys";
 
 export const runtime = "nodejs";
 
+/** 墨澄2周年記念で固定。周年数はユーザーに入力させない */
+export const ANNIVERSARY_YEARS = 2;
+
 interface IssueRequest {
   id?: unknown;
-  years?: unknown;
 }
 
 /**
  * POST /api/issue
- * {id, years} を受け取り、サーバー時刻を添えて AES-256-GCM で暗号化したブロブを返す。
+ * {id} を受け取り、サーバー時刻と固定の周年数を添えて AES-256-GCM で暗号化したブロブを返す。
  * timestamp をサーバーで付与することで作成時刻の偽装を防ぐ。
  */
 export async function POST(request: Request): Promise<Response> {
@@ -32,12 +34,9 @@ export async function POST(request: Request): Promise<Response> {
     return Response.json({ error: "JSON を送信してください" }, { status: 400 });
   }
 
-  const { id, years } = body;
-  if (typeof id !== "string" || typeof years !== "number") {
-    return Response.json(
-      { error: "id (文字列) と years (数値) が必要です" },
-      { status: 400 },
-    );
+  const { id } = body;
+  if (typeof id !== "string") {
+    return Response.json({ error: "id (文字列) が必要です" }, { status: 400 });
   }
   const normalizedId = id.normalize("NFC").trim();
   const idBytes = new TextEncoder().encode(normalizedId);
@@ -47,17 +46,11 @@ export async function POST(request: Request): Promise<Response> {
       { status: 400 },
     );
   }
-  if (!Number.isInteger(years) || years < 1 || years > 255) {
-    return Response.json(
-      { error: "周年数は 1〜255 の整数で入力してください" },
-      { status: 400 },
-    );
-  }
 
   const issuedAt = Math.floor(Date.now() / 1000);
   const plaintext = encodePayload({
     id: normalizedId,
-    years,
+    years: ANNIVERSARY_YEARS,
     timestamp: issuedAt,
   });
   const blob = await encryptBlob(key, plaintext);

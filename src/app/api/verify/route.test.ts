@@ -20,10 +20,8 @@ describe("POST /api/verify", () => {
     vi.unstubAllEnvs();
   });
 
-  it("issue の出力を渡すと元の ID・years・issuedAt (unix 秒) が返る", async () => {
-    const issued = await issue(
-      request("/api/issue", { id: "墨澄ファン_01", years: 3 }),
-    );
+  it("issue の出力を渡すと元の ID・2周年固定・issuedAt (unix 秒) が返る", async () => {
+    const issued = await issue(request("/api/issue", { id: "墨澄ファン_01" }));
     const { payload } = (await issued.json()) as { payload: string };
 
     const res = await verify(request("/api/verify", { payload }));
@@ -34,12 +32,12 @@ describe("POST /api/verify", () => {
       issuedAt: number;
     };
     expect(body.id).toBe("墨澄ファン_01");
-    expect(body.years).toBe(3);
+    expect(body.years).toBe(2);
     expect(body.issuedAt).toBeGreaterThan(0);
   });
 
   it("改竄ブロブ → 422", async () => {
-    const issued = await issue(request("/api/issue", { id: "a", years: 1 }));
+    const issued = await issue(request("/api/issue", { id: "a" }));
     const { payload } = (await issued.json()) as { payload: string };
     const blob = Buffer.from(payload, "base64");
     blob[14] ^= 0x01; // ciphertext を 1bit 反転
@@ -50,7 +48,7 @@ describe("POST /api/verify", () => {
   });
 
   it("別鍵で発行されたブロブ → 422", async () => {
-    const issued = await issue(request("/api/issue", { id: "a", years: 1 }));
+    const issued = await issue(request("/api/issue", { id: "a" }));
     const { payload } = (await issued.json()) as { payload: string };
     vi.stubEnv("ANNIV_SECRET_KEY", "c".repeat(64));
     const res = await verify(request("/api/verify", { payload }));
