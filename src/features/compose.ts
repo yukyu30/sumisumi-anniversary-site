@@ -8,11 +8,25 @@ import { rasterize } from "@/lib/barcode/rasterize";
 import { frameContainer } from "@/lib/container";
 import { formatJst } from "@/lib/format";
 
+export type FrameColor = "blue" | "orange";
+
 export const CANVAS_WIDTH = 1280;
-export const CANVAS_HEIGHT = 1600;
 /** 1280 / 64 モジュール = 20px/モジュール → ストリップは 1280×360 */
 const MODULE_SCALE = 20;
-const STRIP_HEIGHT = 18 * MODULE_SCALE;
+const STRIP_HEIGHT = 18 * MODULE_SCALE; // 360
+/** 写真 + フレームの正方形領域 */
+const SQUARE = CANVAS_WIDTH; // 1280
+const FOOTER_HEIGHT = 150;
+export const CANVAS_HEIGHT = STRIP_HEIGHT + SQUARE + FOOTER_HEIGHT; // 1790
+
+/** フレーム色ごとのテーマ（フレーム PNG のリボン色に合わせる） */
+const THEMES: Record<
+  FrameColor,
+  { ink: string; sub: string; frameSrc: string }
+> = {
+  blue: { ink: "#2f63e8", sub: "#5b6b8c", frameSrc: "/frames/blue.png" },
+  orange: { ink: "#f0971b", sub: "#a5824a", frameSrc: "/frames/orange.png" },
+};
 
 export interface ComposeInput {
   /** /api/issue が返した base64 暗号ブロブ */
@@ -21,6 +35,7 @@ export interface ComposeInput {
   issuedAt: number;
   id: string;
   years: number;
+  frameColor: FrameColor;
   file: File;
 }
 
@@ -42,8 +57,8 @@ function serifFamily(): string {
 async function ensureFonts(family: string): Promise<void> {
   try {
     await Promise.all([
-      document.fonts.load(`700 112px ${family}`, "祝周年0123456789"),
-      document.fonts.load(`500 40px ${family}`, "墨澄記念証"),
+      document.fonts.load(`700 44px ${family}`, "墨澄記念証周年"),
+      document.fonts.load(`500 30px ${family}`, "0123456789年月日発行"),
     ]);
   } catch {
     // フォントが読めなくてもフォールバックで描画は続行できる
@@ -67,49 +82,15 @@ function drawCover(
   ctx.drawImage(image, sx, sy, sw, sh, dx, dy, dw, dh);
 }
 
-/** 墨のかすれを模した太い横線 */
-function drawInkStroke(
-  ctx: CanvasRenderingContext2D,
-  cx: number,
-  y: number,
-  width: number,
-): void {
-  ctx.save();
-  for (let i = 0; i < 5; i++) {
-    const offset = (i - 2) * 2.2;
-    ctx.strokeStyle = `rgba(28, 25, 23, ${0.16 - Math.abs(i - 2) * 0.03})`;
-    ctx.lineWidth = 8 - Math.abs(i - 2) * 2;
-    ctx.lineCap = "round";
-    ctx.beginPath();
-    ctx.moveTo(cx - width / 2, y + offset);
-    ctx.quadraticCurveTo(cx, y + offset - 3, cx + width / 2, y + offset + 1);
-    ctx.stroke();
+/** フレーム PNG を読み込む。未配置（404）なら null を返してフォールバックする */
+async function loadFrame(src: string): Promise<ImageBitmap | null> {
+  try {
+    const res = await fetch(src);
+    if (!res.ok) return null;
+    return await createImageBitmap(await res.blob());
+  } catch {
+    return null;
   }
-  ctx.restore();
-}
-
-/** 落款（らっかん）風の朱印 */
-function drawSeal(
-  ctx: CanvasRenderingContext2D,
-  x: number,
-  y: number,
-  size: number,
-  family: string,
-): void {
-  ctx.save();
-  ctx.translate(x + size / 2, y + size / 2);
-  ctx.rotate((-2.5 * Math.PI) / 180);
-  ctx.fillStyle = "#b03a2e";
-  ctx.beginPath();
-  ctx.roundRect(-size / 2, -size / 2, size, size, size * 0.12);
-  ctx.fill();
-  ctx.fillStyle = "#f7f4ec";
-  ctx.font = `700 ${size * 0.42}px ${family}`;
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  ctx.fillText("墨", 0, -size * 0.22);
-  ctx.fillText("澄", 0, size * 0.24);
-  ctx.restore();
 }
 
 /**
@@ -119,9 +100,13 @@ function drawSeal(
 export async function composeAnniversaryImage(
   input: ComposeInput,
 ): Promise<Blob> {
+  const theme = THEMES[input.frameColor];
   const blob = base64ToBytes(input.payload);
   const strip = rasterize(encodeBarcode(frameContainer(blob)), MODULE_SCALE);
-  const photo = await createImageBitmap(input.file);
+  const [photo, frame] = await Promise.all([
+    createImageBitmap(input.file),
+    loadFrame(theme.frameSrc),
+  ]);
   const family = serifFamily();
   await ensureFonts(family);
 
@@ -131,11 +116,11 @@ export async function composeAnniversaryImage(
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("Canvas 2D コンテキストを取得できません");
 
-  // 和紙風の背景
-  ctx.fillStyle = "#f7f4ec";
+  // 背景（白）
+  ctx.fillStyle = "#ffffff";
   ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
-  // バーコードストリップ（画像上部の白黒もよう）
+  // バーコードストリップ（画像上部の白黒もよう＝検証用）
   ctx.putImageData(
     new ImageData(
       strip.pixels as Uint8ClampedArray<ArrayBuffer>,
@@ -146,48 +131,37 @@ export async function composeAnniversaryImage(
     0,
   );
 
-  // ストリップ下の墨の区切り線
-  ctx.fillStyle = "#1c1917";
+  // ストリップ下のテーマ色の区切り線
+  ctx.fillStyle = theme.ink;
   ctx.fillRect(0, STRIP_HEIGHT, CANVAS_WIDTH, 6);
 
-  // 写真（墨の額縁つき）
-  const photoRect = { x: 100, y: 440, w: 1080, h: 760 } as const;
-  ctx.save();
-  ctx.shadowColor = "rgba(28, 25, 23, 0.35)";
-  ctx.shadowBlur = 24;
-  ctx.shadowOffsetY = 8;
-  ctx.fillStyle = "#1c1917";
-  ctx.fillRect(
-    photoRect.x - 14,
-    photoRect.y - 14,
-    photoRect.w + 28,
-    photoRect.h + 28,
-  );
-  ctx.restore();
-  drawCover(ctx, photo, photoRect.x, photoRect.y, photoRect.w, photoRect.h);
+  // 写真（正方形に cover-fit）
+  const squareTop = STRIP_HEIGHT + 6;
+  drawCover(ctx, photo, 0, squareTop, SQUARE, SQUARE - 6);
   photo.close();
 
-  // タイトル「祝 N周年」
-  ctx.fillStyle = "#1c1917";
+  // フレーム PNG を写真の上に重ねる（透過部分から写真が見える）
+  if (frame) {
+    ctx.drawImage(frame, 0, squareTop, SQUARE, SQUARE);
+    frame.close();
+  }
+
+  // フッター: ID と発行日時
+  const footerY = STRIP_HEIGHT + SQUARE;
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, footerY, CANVAS_WIDTH, FOOTER_HEIGHT);
   ctx.textAlign = "center";
   ctx.textBaseline = "alphabetic";
-  ctx.font = `700 112px ${family}`;
-  ctx.fillText(`祝 ${input.years}周年`, CANVAS_WIDTH / 2, 1330);
-  drawInkStroke(ctx, CANVAS_WIDTH / 2, 1356, 620);
-
-  // ID と発行日時
-  ctx.font = `500 44px ${family}`;
-  ctx.fillText(input.id, CANVAS_WIDTH / 2, 1440);
-  ctx.font = `500 30px ${family}`;
-  ctx.fillStyle = "#44403c";
+  ctx.fillStyle = theme.ink;
+  ctx.font = `700 46px ${family}`;
+  ctx.fillText(input.id, CANVAS_WIDTH / 2, footerY + 66);
+  ctx.fillStyle = theme.sub;
+  ctx.font = `500 28px ${family}`;
   ctx.fillText(
     `${formatJst(input.issuedAt)} 発行 ・ 墨澄 -SumiSumi- 周年記念証`,
     CANVAS_WIDTH / 2,
-    1508,
+    footerY + 112,
   );
-
-  // 落款
-  drawSeal(ctx, photoRect.x + photoRect.w - 108, photoRect.y + photoRect.h - 108, 96, family);
 
   return await new Promise<Blob>((resolve, reject) => {
     canvas.toBlob(

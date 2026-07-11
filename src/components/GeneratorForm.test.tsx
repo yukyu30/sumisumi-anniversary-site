@@ -46,8 +46,22 @@ describe("GeneratorForm", () => {
         issuedAt: 1_752_246_000,
         id: "yukyu30",
         years: 3,
+        frameColor: "blue",
         file: PNG_FILE,
       }),
+    );
+  });
+
+  it("フレーム色をオレンジに切り替えると onIssued に反映される", async () => {
+    const user = userEvent.setup();
+    render(<GeneratorForm onIssued={onIssued} />);
+    await user.click(screen.getByRole("radio", { name: /オレンジ/ }));
+    await fillAndSubmit(user, "yukyu30");
+
+    await waitFor(() =>
+      expect(onIssued).toHaveBeenCalledWith(
+        expect.objectContaining({ frameColor: "orange" }),
+      ),
     );
   });
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import type { FrameColor } from "@/features/compose";
 import { MAX_ID_BYTES } from "@/lib/payload";
 
 export interface IssuedData {
@@ -10,8 +11,14 @@ export interface IssuedData {
   issuedAt: number;
   id: string;
   years: number;
+  frameColor: FrameColor;
   file: File;
 }
+
+const FRAME_OPTIONS: { value: FrameColor; label: string; swatch: string }[] = [
+  { value: "blue", label: "青", swatch: "#2f63e8" },
+  { value: "orange", label: "オレンジ", swatch: "#f0971b" },
+];
 
 interface Props {
   onIssued: (data: IssuedData) => void;
@@ -20,6 +27,7 @@ interface Props {
 export function GeneratorForm({ onIssued }: Props) {
   const [id, setId] = useState("");
   const [years, setYears] = useState("");
+  const [frameColor, setFrameColor] = useState<FrameColor>("blue");
   const [file, setFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -68,6 +76,7 @@ export function GeneratorForm({ onIssued }: Props) {
         issuedAt: body.issuedAt,
         id: normalizedId,
         years: yearsNumber,
+        frameColor,
         file,
       });
     } catch {
@@ -108,6 +117,37 @@ export function GeneratorForm({ onIssued }: Props) {
           className="w-32 rounded-lg border border-stone-300 bg-white px-3 py-2 text-stone-900 focus:border-stone-800 focus:outline-none"
         />
       </div>
+
+      <fieldset className="flex flex-col gap-1.5">
+        <legend className="text-sm font-medium">フレームの色</legend>
+        <div className="mt-1 flex gap-3">
+          {FRAME_OPTIONS.map((opt) => (
+            <label
+              key={opt.value}
+              className={`flex cursor-pointer items-center gap-2 rounded-lg border px-4 py-2 transition ${
+                frameColor === opt.value
+                  ? "border-stone-800 bg-stone-100"
+                  : "border-stone-300"
+              }`}
+            >
+              <input
+                type="radio"
+                name="frameColor"
+                value={opt.value}
+                checked={frameColor === opt.value}
+                onChange={() => setFrameColor(opt.value)}
+                className="sr-only"
+              />
+              <span
+                aria-hidden
+                className="h-4 w-4 rounded-full"
+                style={{ backgroundColor: opt.swatch }}
+              />
+              <span className="text-sm">{opt.label}</span>
+            </label>
+          ))}
+        </div>
+      </fieldset>
 
       <div className="flex flex-col gap-1.5">
         <label htmlFor="generator-image" className="text-sm font-medium">
