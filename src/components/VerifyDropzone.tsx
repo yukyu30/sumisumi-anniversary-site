@@ -1,77 +1,136 @@
 "use client";
 
-import { useState } from "react";
-import { readImageAsSampler } from "@/features/read-image";
-import { BarcodeDecodeError, decodeBarcode } from "@/lib/barcode/decode";
+import jsQR from "jsqr";
+import { useEffect, useRef, useState } from "react";
+import { VerifiedCheki } from "./VerifiedCheki";
 import { VerifyResult, type VerifyOutcome } from "./VerifyResult";
 
-function bytesToBase64(bytes: Uint8Array): string {
-  let binary = "";
-  for (const byte of bytes) binary += String.fromCharCode(byte);
-  return btoa(binary);
+/** 画像の一部（sx,sy,sw,sh）を長辺 target px に描いて ImageData を得る */
+function regionImageData(
+  bitmap: ImageBitmap,
+  sx: number,
+  sy: number,
+  sw: number,
+  sh: number,
+  target: number,
+): ImageData {
+  const scale = Math.min(target / Math.max(sw, sh), 4);
+  const width = Math.max(1, Math.round(sw * scale));
+  const height = Math.max(1, Math.round(sh * scale));
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("no ctx");
+  ctx.drawImage(bitmap, sx, sy, sw, sh, 0, 0, width, height);
+  return ctx.getImageData(0, 0, width, height);
 }
 
-function decodeErrorMessage(error: BarcodeDecodeError): string {
-  switch (error.code) {
-    case "IMAGE_TOO_SMALL":
-      return "画像が小さすぎて読み取れません。できるだけ元のサイズの画像でお試しください";
-    case "CRC_MISMATCH":
-      return "もようは見つかりましたが、データが壊れています。トリミングや加工のない画像でお試しください";
-    case "PATTERN_NOT_FOUND":
-      return "バーコードのもようが見つかりません。このサイトで生成した画像を、上部を切り取らずに読み込んでください";
+/**
+ * 画像から QR を読み取る。まず全体、見つからなければ QR がある右下領域を
+ * 拡大して再スキャン（大きな写真の隅の小さな QR に強くする）。
+ */
+async function readQrFromFile(file: File): Promise<string | null> {
+  const bitmap = await createImageBitmap(file);
+  try {
+    const W = bitmap.width;
+    const H = bitmap.height;
+    const attempts: [number, number, number, number, number][] = [
+      [0, 0, W, H, 1600], // 全体
+      [W * 0.35, H * 0.55, W * 0.65, H * 0.45, 900], // 右下（チェキの QR 位置）
+      [W * 0.5, H * 0.7, W * 0.5, H * 0.3, 800], // さらに寄せる
+    ];
+    for (const [sx, sy, sw, sh, target] of attempts) {
+      const img = regionImageData(bitmap, sx, sy, sw, sh, target);
+      const found = jsQR(img.data, img.width, img.height);
+      if (found?.data) return found.data;
+    }
+    return null;
+  } finally {
+    bitmap.close();
   }
 }
 
-/** 画像を読み込んでバーコードを解析し、サーバー検証まで行う */
-export function VerifyDropzone() {
+/** QR に埋まった文字列（検証 URL）から payload を取り出す */
+function extractPayload(text: string): string | null {
+  try {
+    const url = new URL(text);
+    const t = url.searchParams.get("t");
+    if (t) return t;
+  } catch {
+    // URL でなければそのまま payload とみなす
+  }
+  return text || null;
+}
+
+async function verifyPayload(payload: string): Promise<VerifyOutcome> {
+  const res = await fetch("/api/verify", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ payload }),
+  });
+  const body = (await res.json()) as {
+    id?: string;
+    years?: number;
+    issuedAt?: number;
+    error?: string;
+  };
+  if (
+    !res.ok ||
+    body.id === undefined ||
+    body.years === undefined ||
+    body.issuedAt === undefined
+  ) {
+    return { ok: false, message: body.error ?? "検証に失敗しました" };
+  }
+  return { ok: true, id: body.id, years: body.years, issuedAt: body.issuedAt };
+}
+
+/** 画像から QR を読み取り、サーバー検証まで行う。t 指定時は自動検証 */
+export function VerifyDropzone({ token }: { token?: string }) {
   const [outcome, setOutcome] = useState<VerifyOutcome | null>(null);
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const imageRef = useRef<string | null>(null);
+
+  const setImage = (url: string | null) => {
+    if (imageRef.current) URL.revokeObjectURL(imageRef.current);
+    imageRef.current = url;
+    setImageUrl(url);
+  };
+  useEffect(() => () => setImage(null), []);
+
+  useEffect(() => {
+    if (!token) return;
+    let active = true;
+    setBusy(true);
+    verifyPayload(token)
+      .then((o) => active && setOutcome(o))
+      .finally(() => active && setBusy(false));
+    return () => {
+      active = false;
+    };
+  }, [token]);
 
   async function handleFile(file: File | undefined) {
     if (!file) return;
     setBusy(true);
     setOutcome(null);
+    setImage(null);
     try {
-      const sampler = await readImageAsSampler(file);
-      let blob: Uint8Array;
-      try {
-        blob = decodeBarcode(sampler);
-      } catch (error) {
-        if (error instanceof BarcodeDecodeError) {
-          setOutcome({ ok: false, message: decodeErrorMessage(error) });
-          return;
-        }
-        throw error;
-      }
-      const res = await fetch("/api/verify", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ payload: bytesToBase64(blob) }),
-      });
-      const body = (await res.json()) as {
-        id?: string;
-        years?: number;
-        issuedAt?: number;
-        error?: string;
-      };
-      if (
-        !res.ok ||
-        body.id === undefined ||
-        body.years === undefined ||
-        body.issuedAt === undefined
-      ) {
+      const qrText = await readQrFromFile(file);
+      const payload = qrText ? extractPayload(qrText) : null;
+      if (!payload) {
         setOutcome({
           ok: false,
-          message: body.error ?? "検証に失敗しました",
+          message:
+            "QR コードが見つかりません。このサイトで生成した画像をお試しください",
         });
         return;
       }
-      setOutcome({
-        ok: true,
-        id: body.id,
-        years: body.years,
-        issuedAt: body.issuedAt,
-      });
+      const result = await verifyPayload(payload);
+      setOutcome(result);
+      if (result.ok) setImage(URL.createObjectURL(file));
     } catch {
       setOutcome({
         ok: false,
@@ -82,18 +141,24 @@ export function VerifyDropzone() {
     }
   }
 
+  const loaded = outcome !== null || imageUrl !== null;
+  const buttonLabel = busy
+    ? "解析中…"
+    : loaded
+      ? "別の画像を読み込む"
+      : "記念画像を読み込む";
+
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col items-center gap-8">
       <label
         htmlFor="verify-image"
-        className="flex cursor-pointer flex-col items-center gap-2 rounded-3xl border-4 border-dashed border-zinc-300 bg-zinc-50 px-6 py-14 text-center transition hover:border-brand-blue hover:bg-brand-blue/5"
+        className={`inline-block rounded-full px-8 py-3.5 font-bold transition ${
+          busy
+            ? "pointer-events-none bg-zinc-200 text-zinc-400"
+            : "cursor-pointer bg-brand-blue text-white hover:bg-brand-blue-dark"
+        }`}
       >
-        <span className="text-lg font-black">
-          {busy ? "解析中…" : "記念画像を選択"}
-        </span>
-        <span className="text-sm font-medium text-zinc-500">
-          このサイトで生成した画像（SNS 保存版でも OK）
-        </span>
+        {buttonLabel}
         <input
           id="verify-image"
           type="file"
@@ -106,7 +171,17 @@ export function VerifyDropzone() {
           }}
         />
       </label>
-      {outcome && <VerifyResult outcome={outcome} />}
+      {outcome &&
+        (outcome.ok && imageUrl ? (
+          <VerifiedCheki
+            imageUrl={imageUrl}
+            id={outcome.id}
+            years={outcome.years}
+            issuedAt={outcome.issuedAt}
+          />
+        ) : (
+          <VerifyResult outcome={outcome} />
+        ))}
     </div>
   );
 }

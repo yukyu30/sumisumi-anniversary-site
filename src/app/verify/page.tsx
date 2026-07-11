@@ -5,7 +5,12 @@ export const metadata = {
   title: "画像を検証する",
 };
 
-export default function VerifyPage() {
+export default async function VerifyPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ t?: string }>;
+}) {
+  const { t } = await searchParams;
   return (
     <main className="mx-auto w-full max-w-xl flex-1 px-6 py-12">
       <Link
@@ -14,13 +19,12 @@ export default function VerifyPage() {
       >
         ← トップへ
       </Link>
-      <h1 className="mt-4 text-3xl font-black">記念画像を検証する</h1>
+      <h1 className="mt-4 text-3xl font-black">記念写真の認証</h1>
       <p className="mt-2 text-sm font-medium leading-relaxed text-zinc-600">
-        画像上部の白黒もようを読み取り、サーバーの秘密鍵で復号します。
-        復号と認証に成功すれば、このシステムが発行した本物の記念画像です。
+        記念画像のQRコードから署名を確認します
       </p>
       <div className="mt-8">
-        <VerifyDropzone />
+        <VerifyDropzone token={t} />
       </div>
     </main>
   );
