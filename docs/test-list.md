@@ -84,7 +84,7 @@
 ## Phase 5–6: UI
 
 - [x] ⑳ GeneratorForm: バリデーションメッセージ / 送信時の fetch body
-- [ ] ㉑ VerifyResult: 成功時に ID・周年・JST 時刻 / 失敗理由の表示分岐
+- [x] ㉑ VerifyResult: 成功時に ID・周年・JST 時刻 / 失敗理由の表示分岐
 
 ## 気づいたこと（随時追加）
 
