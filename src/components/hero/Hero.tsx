@@ -39,8 +39,8 @@ export function Hero() {
 
   function onPointerDown(e: React.PointerEvent) {
     if (e.pointerType !== "touch") return;
+    // ポインタをキャプチャしない → 縦スワイプはブラウザのスクロールに任せる
     touch.current = { id: e.pointerId, x: e.clientX };
-    e.currentTarget.setPointerCapture(e.pointerId);
   }
 
   function onPointerUp(e: React.PointerEvent) {
@@ -54,7 +54,8 @@ export function Hero() {
 
   return (
     <div
-      className="relative h-[74vh] max-h-[760px] min-h-[440px] w-full touch-none select-none"
+      // touch-action: pan-y … 縦スワイプはページスクロール、横だけ視差に使う
+      className="relative h-[74vh] max-h-[760px] min-h-[440px] w-full touch-pan-y select-none"
       onPointerMove={onPointerMove}
       onPointerDown={onPointerDown}
       onPointerUp={onPointerUp}
