@@ -1,11 +1,14 @@
-import { encryptBlob } from "@/lib/crypto";
 import { encodePayload, MAX_ID_BYTES } from "@/lib/payload";
-import { getSecretKey } from "@/lib/server/keys";
+import { getPrivateKey } from "@/lib/server/keys";
+import { signPayload } from "@/lib/sign";
 
 export const runtime = "nodejs";
 
 /** 墨澄2周年記念で固定。周年数はユーザーに入力させない */
 export const ANNIVERSARY_YEARS = 2;
+
+/** 記念画像の生成受付終了（2026-07-29 23:59:59 JST まで） */
+export const GENERATION_DEADLINE = Date.parse("2026-07-29T23:59:59+09:00");
 
 interface IssueRequest {
   id?: unknown;
@@ -13,13 +16,20 @@ interface IssueRequest {
 
 /**
  * POST /api/issue
- * {id} を受け取り、サーバー時刻と固定の周年数を添えて AES-256-GCM で暗号化したブロブを返す。
+ * {id} を受け取り、サーバー時刻と固定の周年数を添えて秘密鍵で署名したトークンを返す。
  * timestamp をサーバーで付与することで作成時刻の偽装を防ぐ。
  */
 export async function POST(request: Request): Promise<Response> {
+  if (Date.now() > GENERATION_DEADLINE) {
+    return Response.json(
+      { error: "記念画像の生成受付は終了しました。ありがとうございました！" },
+      { status: 403 },
+    );
+  }
+
   let key: Uint8Array;
   try {
-    key = getSecretKey();
+    key = getPrivateKey();
   } catch {
     return Response.json(
       { error: "サーバーの設定エラーです" },
@@ -48,15 +58,14 @@ export async function POST(request: Request): Promise<Response> {
   }
 
   const issuedAt = Math.floor(Date.now() / 1000);
-  const plaintext = encodePayload({
+  const payload = encodePayload({
     id: normalizedId,
     years: ANNIVERSARY_YEARS,
     timestamp: issuedAt,
   });
-  const blob = await encryptBlob(key, plaintext);
-  // issuedAt も返し、画像への印字と暗号化された時刻を一致させる
+  const token = await signPayload(key, payload);
   return Response.json({
-    payload: Buffer.from(blob).toString("base64"),
+    payload: Buffer.from(token).toString("base64"),
     issuedAt,
   });
 }

@@ -1,10 +1,10 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { decryptBlob } from "@/lib/crypto";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { decodePayload } from "@/lib/payload";
-import { ANNIVERSARY_YEARS, POST } from "./route";
+import { verifyToken } from "@/lib/sign";
+import { ANNIVERSARY_YEARS, GENERATION_DEADLINE, POST } from "./route";
 
-const KEY_HEX = "a".repeat(64);
-const KEY = Uint8Array.from(Buffer.from(KEY_HEX, "hex"));
+let PRIV_B64: string;
+let PUB: Uint8Array;
 
 function request(body: unknown): Request {
   return new Request("http://localhost/api/issue", {
@@ -14,15 +14,39 @@ function request(body: unknown): Request {
   });
 }
 
+async function decodeToken(payload: string) {
+  const token = Uint8Array.from(Buffer.from(payload, "base64"));
+  return decodePayload(await verifyToken(PUB, token));
+}
+
+beforeAll(async () => {
+  const kp = await crypto.subtle.generateKey({ name: "Ed25519" }, true, [
+    "sign",
+    "verify",
+  ]);
+  PRIV_B64 = Buffer.from(
+    await crypto.subtle.exportKey("pkcs8", kp.privateKey),
+  ).toString("base64");
+  PUB = new Uint8Array(await crypto.subtle.exportKey("raw", kp.publicKey));
+});
+
 describe("POST /api/issue", () => {
   beforeEach(() => {
-    vi.stubEnv("ANNIV_SECRET_KEY", KEY_HEX);
+    vi.stubEnv("ANNIV_PRIVATE_KEY", PRIV_B64);
   });
   afterEach(() => {
     vi.unstubAllEnvs();
+    vi.useRealTimers();
   });
 
-  it("正常系: base64 ブロブが返り、復号すると ID・2周年固定・サーバー付与の現在時刻", async () => {
+  it("受付期限を過ぎると 403", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(GENERATION_DEADLINE + 1000);
+    const res = await POST(request({ id: "yukyu30" }));
+    expect(res.status).toBe(403);
+  });
+
+  it("正常系: 署名トークンが返り、公開鍵で検証すると ID・2周年固定・現在時刻", async () => {
     const before = Math.floor(Date.now() / 1000);
     const res = await POST(request({ id: "yukyu30" }));
     const after = Math.floor(Date.now() / 1000);
@@ -32,15 +56,12 @@ describe("POST /api/issue", () => {
       payload: string;
       issuedAt: number;
     };
-    const blob = Uint8Array.from(Buffer.from(payload, "base64"));
-    const decoded = decodePayload(await decryptBlob(KEY, blob));
+    const decoded = await decodeToken(payload);
     expect(decoded.id).toBe("yukyu30");
-    // 周年数は入力させず 2 周年固定
     expect(decoded.years).toBe(ANNIVERSARY_YEARS);
     expect(ANNIVERSARY_YEARS).toBe(2);
     expect(decoded.timestamp).toBeGreaterThanOrEqual(before);
     expect(decoded.timestamp).toBeLessThanOrEqual(after);
-    // 画像に印字する発行時刻は暗号化された timestamp と一致する
     expect(issuedAt).toBe(decoded.timestamp);
   });
 
@@ -48,18 +69,16 @@ describe("POST /api/issue", () => {
     const res = await POST(request({ id: "yukyu30", years: 99 }));
     expect(res.status).toBe(200);
     const { payload } = (await res.json()) as { payload: string };
-    const blob = Uint8Array.from(Buffer.from(payload, "base64"));
-    const decoded = decodePayload(await decryptBlob(KEY, blob));
-    expect(decoded.years).toBe(ANNIVERSARY_YEARS);
+    expect((await decodeToken(payload)).years).toBe(ANNIVERSARY_YEARS);
   });
 
   it("ID は NFC 正規化 + trim される", async () => {
     const res = await POST(request({ id: "  すみ゙すみ  " }));
     expect(res.status).toBe(200);
     const { payload } = (await res.json()) as { payload: string };
-    const blob = Uint8Array.from(Buffer.from(payload, "base64"));
-    const decoded = decodePayload(await decryptBlob(KEY, blob));
-    expect(decoded.id).toBe("すみ゙すみ".normalize("NFC").trim());
+    expect((await decodeToken(payload)).id).toBe(
+      "すみ゙すみ".normalize("NFC").trim(),
+    );
   });
 
   it("ID が空 / 空白のみ / 65 バイト超 → 400", async () => {
@@ -79,14 +98,14 @@ describe("POST /api/issue", () => {
     expect(res.status).toBe(400);
   });
 
-  it("鍵未設定 → 500", async () => {
-    vi.stubEnv("ANNIV_SECRET_KEY", "");
+  it("秘密鍵未設定 → 500", async () => {
+    vi.stubEnv("ANNIV_PRIVATE_KEY", "");
     const res = await POST(request({ id: "yukyu30" }));
     expect(res.status).toBe(500);
   });
 
-  it("鍵が不正形式（短い hex）→ 500", async () => {
-    vi.stubEnv("ANNIV_SECRET_KEY", "abcd");
+  it("秘密鍵が不正形式 → 500", async () => {
+    vi.stubEnv("ANNIV_PRIVATE_KEY", "not-a-key");
     const res = await POST(request({ id: "yukyu30" }));
     expect(res.status).toBe(500);
   });

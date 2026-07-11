@@ -1,8 +1,10 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { POST as issue } from "../issue/route";
 import { POST as verify } from "./route";
 
-const KEY_HEX = "b".repeat(64);
+let PRIV_B64: string;
+let PUB_B64: string;
+let OTHER_PUB_B64: string;
 
 function request(url: string, body: unknown): Request {
   return new Request(`http://localhost${url}`, {
@@ -12,15 +14,38 @@ function request(url: string, body: unknown): Request {
   });
 }
 
+async function exportPair() {
+  const kp = await crypto.subtle.generateKey({ name: "Ed25519" }, true, [
+    "sign",
+    "verify",
+  ]);
+  return {
+    priv: Buffer.from(
+      await crypto.subtle.exportKey("pkcs8", kp.privateKey),
+    ).toString("base64"),
+    pub: Buffer.from(
+      await crypto.subtle.exportKey("raw", kp.publicKey),
+    ).toString("base64"),
+  };
+}
+
+beforeAll(async () => {
+  const pair = await exportPair();
+  PRIV_B64 = pair.priv;
+  PUB_B64 = pair.pub;
+  OTHER_PUB_B64 = (await exportPair()).pub;
+});
+
 describe("POST /api/verify", () => {
   beforeEach(() => {
-    vi.stubEnv("ANNIV_SECRET_KEY", KEY_HEX);
+    vi.stubEnv("ANNIV_PRIVATE_KEY", PRIV_B64);
+    vi.stubEnv("ANNIV_PUBLIC_KEY", PUB_B64);
   });
   afterEach(() => {
     vi.unstubAllEnvs();
   });
 
-  it("issue の出力を渡すと元の ID・2周年固定・issuedAt (unix 秒) が返る", async () => {
+  it("issue の出力を渡すと元の ID・2周年固定・issuedAt が返る", async () => {
     const issued = await issue(request("/api/issue", { id: "墨澄ファン_01" }));
     const { payload } = (await issued.json()) as { payload: string };
 
@@ -36,21 +61,21 @@ describe("POST /api/verify", () => {
     expect(body.issuedAt).toBeGreaterThan(0);
   });
 
-  it("改竄ブロブ → 422", async () => {
+  it("改竄トークン → 422", async () => {
     const issued = await issue(request("/api/issue", { id: "a" }));
     const { payload } = (await issued.json()) as { payload: string };
-    const blob = Buffer.from(payload, "base64");
-    blob[14] ^= 0x01; // ciphertext を 1bit 反転
+    const token = Buffer.from(payload, "base64");
+    token[token.length - 1] ^= 0x01; // 署名を 1bit 反転
     const res = await verify(
-      request("/api/verify", { payload: blob.toString("base64") }),
+      request("/api/verify", { payload: token.toString("base64") }),
     );
     expect(res.status).toBe(422);
   });
 
-  it("別鍵で発行されたブロブ → 422", async () => {
+  it("別の公開鍵で検証 → 422", async () => {
     const issued = await issue(request("/api/issue", { id: "a" }));
     const { payload } = (await issued.json()) as { payload: string };
-    vi.stubEnv("ANNIV_SECRET_KEY", "c".repeat(64));
+    vi.stubEnv("ANNIV_PUBLIC_KEY", OTHER_PUB_B64);
     const res = await verify(request("/api/verify", { payload }));
     expect(res.status).toBe(422);
   });
@@ -67,8 +92,8 @@ describe("POST /api/verify", () => {
     expect(res.status).toBe(400);
   });
 
-  it("鍵未設定 → 500", async () => {
-    vi.stubEnv("ANNIV_SECRET_KEY", "");
+  it("公開鍵未設定 → 500", async () => {
+    vi.stubEnv("ANNIV_PUBLIC_KEY", "");
     const res = await verify(request("/api/verify", { payload: "QUJD" }));
     expect(res.status).toBe(500);
   });

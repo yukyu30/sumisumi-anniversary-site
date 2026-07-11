@@ -1,19 +1,30 @@
 import "server-only";
 
+function decodeBase64(value: string | undefined, name: string): Uint8Array {
+  if (!value) throw new Error(`${name} が未設定です`);
+  try {
+    return Uint8Array.from(Buffer.from(value, "base64"));
+  } catch {
+    throw new Error(`${name} の形式が不正です（base64）`);
+  }
+}
+
 /**
- * 環境変数 ANNIV_SECRET_KEY (hex 64 桁 = 32 バイト) を読み出す。
- * 未設定・不正形式は例外（route 側で 500 にする）。
+ * 署名用の秘密鍵（Ed25519 pkcs8 を base64 にした ANNIV_PRIVATE_KEY）。
+ * 画像の発行（署名）にのみ使う。
  */
-export function getSecretKey(): Uint8Array {
-  const hex = process.env.ANNIV_SECRET_KEY;
-  if (!hex || !/^[0-9a-fA-F]{64}$/.test(hex)) {
-    throw new Error(
-      "ANNIV_SECRET_KEY が未設定か不正です（hex 64 桁が必要。生成: openssl rand -hex 32）",
-    );
-  }
-  const key = new Uint8Array(32);
-  for (let i = 0; i < 32; i++) {
-    key[i] = parseInt(hex.slice(i * 2, i * 2 + 2), 16);
-  }
+export function getPrivateKey(): Uint8Array {
+  const key = decodeBase64(process.env.ANNIV_PRIVATE_KEY, "ANNIV_PRIVATE_KEY");
+  if (key.length < 32) throw new Error("ANNIV_PRIVATE_KEY が不正です");
+  return key;
+}
+
+/**
+ * 検証用の公開鍵（Ed25519 raw 32B を base64 にした ANNIV_PUBLIC_KEY）。
+ * 画像の検証にのみ使う。
+ */
+export function getPublicKey(): Uint8Array {
+  const key = decodeBase64(process.env.ANNIV_PUBLIC_KEY, "ANNIV_PUBLIC_KEY");
+  if (key.length !== 32) throw new Error("ANNIV_PUBLIC_KEY が不正です");
   return key;
 }
