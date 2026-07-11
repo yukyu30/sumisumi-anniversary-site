@@ -48,9 +48,10 @@ export function Generator() {
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [photoAspect, setPhotoAspect] = useState(1);
   const [frame, setFrame] = useState<FramePlacement>(DEFAULT_FRAME);
-  const [issued, setIssued] = useState<{ payload: string; issuedAt: number } | null>(
-    null,
-  );
+  const [issued, setIssued] = useState<{
+    payload: string;
+    issuedAt: number;
+  } | null>(null);
   const [qrUrl, setQrUrl] = useState<string | null>(null);
   const [downloading, setDownloading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -104,7 +105,9 @@ export function Generator() {
           setIssued({ payload: body.payload, issuedAt: body.issuedAt });
         } else {
           setIssued(null);
-          setError(body.error ?? "うまく作れませんでした。時間をおいて試してください");
+          setError(
+            body.error ?? "うまく作れませんでした。時間をおいて試してください",
+          );
         }
       } catch {
         if (active) setError("通信に失敗しました");
@@ -143,8 +146,7 @@ export function Generator() {
     if (mode === "resize" && rect) {
       const centerX = rect.left + frame.cx * rect.width;
       const centerY = rect.top + frame.cy * rect.height;
-      startDist =
-        Math.hypot(e.clientX - centerX, e.clientY - centerY) || 1;
+      startDist = Math.hypot(e.clientX - centerX, e.clientY - centerY) || 1;
     }
     dragRef.current = {
       mode,
@@ -183,6 +185,15 @@ export function Generator() {
     dragRef.current = null;
   }
 
+  function shareToX() {
+    const text = `墨澄2周年記念の画像を作りました！\n${location.origin}\n#Sumi3D`;
+    window.open(
+      `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`,
+      "_blank",
+      "noopener,noreferrer",
+    );
+  }
+
   async function handleDownload() {
     if (!file || !issued) return;
     setDownloading(true);
@@ -194,10 +205,27 @@ export function Generator() {
         frame,
         file,
       });
+      const filename = `sumisumi-2nd-${normalizedId || "anniversary"}.png`;
+      const outFile = new File([blob], filename, { type: "image/png" });
+
+      // iOS / スマホ: a.download が効かないので Web Share（写真に保存）を使う
+      const isTouch =
+        typeof matchMedia !== "undefined" &&
+        matchMedia("(pointer: coarse)").matches;
+      if (isTouch && navigator.canShare?.({ files: [outFile] })) {
+        try {
+          await navigator.share({ files: [outFile] });
+          return;
+        } catch (e) {
+          if ((e as Error).name === "AbortError") return; // ユーザーがキャンセル
+          // それ以外は通常ダウンロードにフォールバック
+        }
+      }
+
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `sumisumi-2nd-${normalizedId || "anniversary"}.png`;
+      a.download = filename;
       a.click();
       URL.revokeObjectURL(url);
     } catch {
@@ -403,7 +431,12 @@ export function Generator() {
                 </span>
                 {qrUrl && (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={qrUrl} alt="" aria-hidden className="h-[82%] w-auto" />
+                  <img
+                    src={qrUrl}
+                    alt=""
+                    aria-hidden
+                    className="h-[82%] w-auto"
+                  />
                 )}
               </div>
             </div>
@@ -416,18 +449,48 @@ export function Generator() {
           </div>
         )}
 
-        <button
-          type="button"
-          onClick={handleDownload}
-          disabled={!ready || downloading}
-          className={`w-full max-w-md rounded-full px-6 py-3.5 text-center font-bold transition ${
-            ready && !downloading
-              ? "bg-brand-blue text-white hover:bg-brand-blue-dark"
-              : "cursor-not-allowed bg-zinc-200 text-zinc-400"
-          }`}
-        >
-          {downloading ? "作成中…" : "画像をダウンロード"}
-        </button>
+        <div className="flex w-full max-w-md gap-3">
+          <button
+            type="button"
+            onClick={handleDownload}
+            disabled={!ready || downloading}
+            className={`flex-1 rounded-full px-5 py-3.5 text-center font-bold transition ${
+              ready && !downloading
+                ? "bg-brand-blue text-white hover:bg-brand-blue-dark"
+                : "cursor-not-allowed bg-zinc-200 text-zinc-400"
+            }`}
+          >
+            {downloading ? "作成中…" : "ダウンロード"}
+          </button>
+          <button
+            type="button"
+            onClick={shareToX}
+            disabled={!ready}
+            className={`flex flex-1 items-center justify-center gap-2 rounded-full px-5 py-3.5 font-bold transition ${
+              ready
+                ? "bg-zinc-900 text-white hover:bg-zinc-700"
+                : "cursor-not-allowed bg-zinc-200 text-zinc-400"
+            }`}
+          >
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+              aria-hidden
+            >
+              <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+            </svg>
+            Xでポスト
+          </button>
+        </div>
+        <p className="max-w-md text-center text-xs font-medium text-zinc-400">
+          ダウンロードした画像を X の投稿に添付してね
+        </p>
+        <p className="max-w-md text-center text-xs font-medium text-zinc-400">
+          ※ #Sumi3D を付けて X
+          にポストした記念写真は、このサイトに掲載する可能性があります
+        </p>
       </div>
     </div>
   );
