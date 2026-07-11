@@ -69,17 +69,17 @@
 ## Phase 4: API Routes
 
 ### ⑰ /api/issue
-- [ ] 正常系: base64 ブロブが返り、decrypt すると入力 ID・years・現在時刻±数秒の timestamp
-- [ ] ID 空 / 65 byte 超 / years 0・256 → 400
-- [ ] 鍵未設定 → 500
+- [x] 正常系: base64 ブロブが返り、decrypt すると入力 ID・years・現在時刻±数秒の timestamp
+- [x] ID 空 / 65 byte 超 / years 0・256 → 400
+- [x] 鍵未設定 → 500
 
 ### ⑱ /api/verify
-- [ ] issue の出力を渡すと元データが返る
-- [ ] 改竄ブロブ → 422
-- [ ] base64 でない → 400
+- [x] issue の出力を渡すと元データが返る
+- [x] 改竄ブロブ → 422
+- [x] base64 でない → 400
 
 ### ⑲ 統合
-- [ ] issue → frame → encode → rasterize → JPEG 劣化 → decode → unframe → verify の全経路
+- [x] issue → frame → encode → rasterize → JPEG 劣化 → decode → unframe → verify の全経路
 
 ## Phase 5–6: UI
 

@@ -13,7 +13,10 @@ export default defineConfig({
           include: ["src/lib/**/*.test.ts", "src/app/api/**/*.test.ts"],
         },
         resolve: {
-          alias: { "@": path.resolve(__dirname, "src") },
+          alias: {
+            "@": path.resolve(__dirname, "src"),
+            "server-only": path.resolve(__dirname, "test/stubs/server-only.ts"),
+          },
         },
       },
       {
