@@ -28,13 +28,18 @@ describe("POST /api/issue", () => {
     const after = Math.floor(Date.now() / 1000);
 
     expect(res.status).toBe(200);
-    const { payload } = (await res.json()) as { payload: string };
+    const { payload, issuedAt } = (await res.json()) as {
+      payload: string;
+      issuedAt: number;
+    };
     const blob = Uint8Array.from(Buffer.from(payload, "base64"));
     const decoded = decodePayload(await decryptBlob(KEY, blob));
     expect(decoded.id).toBe("yukyu30");
     expect(decoded.years).toBe(1);
     expect(decoded.timestamp).toBeGreaterThanOrEqual(before);
     expect(decoded.timestamp).toBeLessThanOrEqual(after);
+    // 画像に印字する発行時刻は暗号化された timestamp と一致する
+    expect(issuedAt).toBe(decoded.timestamp);
   });
 
   it("ID は NFC 正規化 + trim される", async () => {

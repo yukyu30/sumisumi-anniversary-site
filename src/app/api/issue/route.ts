@@ -54,11 +54,16 @@ export async function POST(request: Request): Promise<Response> {
     );
   }
 
+  const issuedAt = Math.floor(Date.now() / 1000);
   const plaintext = encodePayload({
     id: normalizedId,
     years,
-    timestamp: Math.floor(Date.now() / 1000),
+    timestamp: issuedAt,
   });
   const blob = await encryptBlob(key, plaintext);
-  return Response.json({ payload: Buffer.from(blob).toString("base64") });
+  // issuedAt も返し、画像への印字と暗号化された時刻を一致させる
+  return Response.json({
+    payload: Buffer.from(blob).toString("base64"),
+    issuedAt,
+  });
 }
