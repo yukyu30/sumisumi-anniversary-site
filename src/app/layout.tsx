@@ -1,18 +1,25 @@
 import type { Metadata } from "next";
-import { Montserrat, Zen_Kaku_Gothic_New } from "next/font/google";
+import { Dela_Gothic_One, Noto_Sans, Noto_Sans_JP } from "next/font/google";
 import "./globals.css";
 
-// 極太ラテン（"sumisumi" ワードマーク・英字見出し用）
-const montserrat = Montserrat({
+// 英字ワードマーク・見出し用
+const notoSans = Noto_Sans({
   variable: "--font-wordmark",
   weight: ["700", "800", "900"],
   subsets: ["latin"],
 });
 
 // 日本語ゴシック（本文・見出し）
-const zenKaku = Zen_Kaku_Gothic_New({
+const notoSansJp = Noto_Sans_JP({
   variable: "--font-sans",
   weight: ["400", "500", "700", "900"],
+  preload: false,
+});
+
+// 極太ディスプレイゴシック（大見出し「2周年」など）
+const delaGothic = Dela_Gothic_One({
+  variable: "--font-display",
+  weight: "400",
   preload: false,
 });
 
@@ -43,7 +50,7 @@ export default function RootLayout({
   return (
     <html
       lang="ja"
-      className={`${montserrat.variable} ${zenKaku.variable} h-full antialiased`}
+      className={`${notoSans.variable} ${notoSansJp.variable} ${delaGothic.variable} h-full antialiased`}
     >
       <body className="flex min-h-full flex-col bg-white text-zinc-900">
         {children}

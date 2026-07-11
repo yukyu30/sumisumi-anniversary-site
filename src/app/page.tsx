@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Confetti } from "@/components/confetti/Confetti";
 import { SumisumiHero } from "@/components/SumisumiHero";
 
 const steps = [
@@ -22,52 +23,55 @@ const steps = [
 export default function Home() {
   return (
     <main className="flex-1">
-      {/* ヒーロー: オレンジのカラーブロック + 傾いたワードマーク + 墨澄 */}
-      <section className="relative overflow-hidden bg-brand-orange">
-        <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-          <span className="wordmark -rotate-6 select-none whitespace-nowrap text-[24vw] leading-none text-zinc-900/90 md:text-[16vw]">
-            sumisumi
+      {/* ヒーロー: 紙吹雪の祝福バナー */}
+      <section className="relative overflow-hidden bg-brand-yellow">
+        <Confetti />
+
+        <div className="relative mx-auto flex w-full max-w-4xl flex-col items-center px-6 pb-14 pt-14 text-center">
+          <span className="anniv-word inline-block rounded-full bg-zinc-900 px-6 py-2 text-[0.65rem] text-white shadow-md md:text-xs">
+            墨澄 SUMISUMI ・ 2nd ANNIVERSARY
           </span>
-        </div>
-        <div className="relative mx-auto flex w-full max-w-5xl flex-col items-center gap-8 px-6 pb-14 pt-20 md:flex-row">
-          <div className="flex-1 text-center md:text-left">
-            <span className="inline-block rounded-full bg-zinc-900 px-4 py-1.5 text-xs font-bold tracking-widest text-white">
-              SUMISUMI 2ND ANNIVERSARY
-            </span>
-            <h1 className="mt-5 text-4xl font-black leading-tight text-zinc-900 md:text-5xl">
-              墨澄との2年を、
-              <br />
-              証明できる記念に。
+
+          {/* 立ち絵の背後に大きな「2周年」 */}
+          <div className="relative mt-6 flex w-full items-end justify-center">
+            <h1
+              aria-label="祝 2周年"
+              className="anniv-number pointer-events-none absolute left-1/2 top-1/2 z-0 -translate-x-1/2 -translate-y-1/2 select-none whitespace-nowrap text-[42vw] md:text-[20rem]"
+            >
+              2周年
             </h1>
-            <p className="mx-auto mt-5 max-w-md text-sm font-medium leading-relaxed text-zinc-800 md:mx-0">
-              アバター「墨澄 -SumiSumi-」の2周年を、記念画像にして残そう。
-              画像の上部には暗号化された発行証明が焼き込まれ、SNS
-              で圧縮されてもこのサイトで「本物」を確かめられます。
-            </p>
-            <div className="mt-8 flex flex-wrap justify-center gap-3 md:justify-start">
-              <Link
-                href="/generate"
-                className="rounded-full bg-zinc-900 px-8 py-3.5 font-bold text-white shadow-lg transition hover:bg-zinc-700"
-              >
-                記念画像をつくる
-              </Link>
-              <Link
-                href="/verify"
-                className="rounded-full bg-white px-8 py-3.5 font-bold text-zinc-900 shadow-lg transition hover:bg-zinc-100"
-              >
-                画像を検証する
-              </Link>
+            <div className="relative z-10 w-full max-w-sm">
+              <SumisumiHero />
             </div>
           </div>
-          <div className="w-full max-w-xs flex-1 md:max-w-sm">
-            <SumisumiHero />
+
+          <p className="mt-6 text-lg font-black tracking-wide text-zinc-900 md:text-2xl">
+            墨澄との2年を、<span className="text-brand-red">証明できる記念</span>に。
+          </p>
+          <p className="mx-auto mt-3 max-w-md text-sm font-medium leading-relaxed text-zinc-800">
+            ID を入れて写真を選ぶだけ。画像の上部には暗号化された発行証明が焼き込まれ、
+            SNS で圧縮されてもこのサイトで「本物」を確かめられます。
+          </p>
+          <div className="mt-7 flex flex-wrap justify-center gap-3">
+            <Link
+              href="/generate"
+              className="rounded-full bg-zinc-900 px-8 py-3.5 font-bold text-white shadow-lg transition hover:bg-zinc-700"
+            >
+              記念画像をつくる
+            </Link>
+            <Link
+              href="/verify"
+              className="rounded-full bg-white px-8 py-3.5 font-bold text-zinc-900 shadow-lg transition hover:bg-zinc-100"
+            >
+              画像を検証する
+            </Link>
           </div>
         </div>
       </section>
 
       {/* しくみ */}
       <section className="mx-auto w-full max-w-5xl px-6 py-16">
-        <h2 className="text-center text-2xl font-black md:text-3xl">しくみ</h2>
+        <h2 className="display text-center text-2xl md:text-3xl">しくみ</h2>
         <div className="mt-10 grid gap-6 md:grid-cols-3">
           {steps.map((step, i) => (
             <div
@@ -97,7 +101,7 @@ export default function Home() {
       {/* 証明バナー（青ブロック） */}
       <section className="bg-brand-blue">
         <div className="mx-auto w-full max-w-3xl px-6 py-14 text-center text-white">
-          <h2 className="text-xl font-black md:text-2xl">
+          <h2 className="display text-xl md:text-2xl">
             「システムが発行した本物」を証明
           </h2>
           <p className="mx-auto mt-4 max-w-xl text-sm font-medium leading-relaxed text-white/90">
@@ -108,8 +112,7 @@ export default function Home() {
       </section>
 
       <footer className="border-t border-zinc-200">
-        <div className="mx-auto flex w-full max-w-5xl flex-wrap items-center justify-between gap-3 px-6 py-6 text-xs font-medium text-zinc-400">
-          <p>墨澄 -SumiSumi- 2周年記念ジェネレーター</p>
+        <div className="mx-auto flex w-full max-w-5xl items-center justify-end px-6 py-6 text-xs font-medium text-zinc-400">
           <a
             href="https://lp.suzuri.jp/3d-t-shirt"
             target="_blank"
