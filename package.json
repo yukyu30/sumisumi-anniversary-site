@@ -10,10 +10,12 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@pixiv/three-vrm": "^3.5.5",
     "next": "16.2.10",
     "react": "19.2.4",
     "react-dom": "19.2.4",
-    "server-only": "^0.0.1"
+    "server-only": "^0.0.1",
+    "three": "^0.185.1"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
@@ -23,6 +25,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/three": "^0.185.1",
     "@vitejs/plugin-react": "^6.0.3",
     "jpeg-js": "^0.4.4",
     "jsdom": "^29.1.1",
